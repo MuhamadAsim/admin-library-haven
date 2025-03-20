@@ -1,7 +1,7 @@
-
 // Types
 export interface Member {
-  id: string;
+  _id?: string; // MongoDB ID
+  id: string;   // Maintain compatibility with existing code
   name: string;
   email: string;
   phone: string;
@@ -11,7 +11,8 @@ export interface Member {
 }
 
 export interface Book {
-  id: string;
+  _id?: string; // MongoDB ID
+  id: string;   // Maintain compatibility with existing code
   title: string;
   author: string;
   isbn: string;
@@ -23,7 +24,8 @@ export interface Book {
 }
 
 export interface Due {
-  id: string;
+  _id?: string; // MongoDB ID
+  id: string;   // Maintain compatibility with existing code
   memberId: string;
   bookId: string;
   issueDate: string;
@@ -33,7 +35,7 @@ export interface Due {
   status: 'pending' | 'paid' | 'waived';
 }
 
-// Mock Data
+// Mock Data - keeping this for fallback and testing
 export const members: Member[] = [
   {
     id: "m1",
@@ -195,11 +197,11 @@ export const dues: Due[] = [
 
 // Helper functions
 export const getMemberName = (memberId: string): string => {
-  const member = members.find(m => m.id === memberId);
+  const member = members.find(m => m.id === memberId || m._id === memberId);
   return member ? member.name : 'Unknown Member';
 };
 
 export const getBookTitle = (bookId: string): string => {
-  const book = books.find(b => b.id === bookId);
+  const book = books.find(b => b.id === bookId || b._id === bookId);
   return book ? book.title : 'Unknown Book';
 };

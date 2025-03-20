@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import { DataTable, Column } from "@/components/ui/DataTable";
 import { MemberForm } from "@/components/Members/MemberForm";
@@ -15,17 +15,72 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, User } from "lucide-react";
-import { Member, members as initialMembers } from "@/lib/data";
+import { PlusCircle, User, Loader2 } from "lucide-react";
+import { Member } from "@/lib/data";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { getMembers, addMember, updateMember, deleteMember } from "@/services/memberService";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const Members = () => {
-  const [members, setMembers] = useState<Member[]>(initialMembers);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  
+  const queryClient = useQueryClient();
+
+  // Fetch members with React Query
+  const { 
+    data: members = [], 
+    isLoading, 
+    isError 
+  } = useQuery({
+    queryKey: ['members'],
+    queryFn: getMembers
+  });
+
+  // Add member mutation
+  const addMemberMutation = useMutation({
+    mutationFn: addMember,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      toast.success("Member added successfully");
+      setIsAddDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.msg || "Failed to add member");
+    }
+  });
+
+  // Update member mutation
+  const updateMemberMutation = useMutation({
+    mutationFn: ({ id, member }: { id: string, member: Partial<Member> }) => 
+      updateMember(id, member),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      toast.success("Member updated successfully");
+      setIsEditDialogOpen(false);
+      setSelectedMember(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.msg || "Failed to update member");
+    }
+  });
+
+  // Delete member mutation
+  const deleteMemberMutation = useMutation({
+    mutationFn: deleteMember,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['members'] });
+      toast.success("Member deleted successfully");
+      setIsDeleteDialogOpen(false);
+      setSelectedMember(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.msg || "Failed to delete member");
+    }
+  });
 
   // Define table columns
   const columns: Column<Member>[] = [
@@ -81,22 +136,22 @@ const Members = () => {
 
   // Handle form submission
   const handleSaveMember = (member: Member) => {
-    if (isEditDialogOpen) {
+    if (isEditDialogOpen && selectedMember) {
       // Update existing member
-      setMembers(members.map((m) => (m.id === member.id ? member : m)));
+      updateMemberMutation.mutate({ 
+        id: selectedMember._id || selectedMember.id, 
+        member 
+      });
     } else {
       // Add new member
-      setMembers([...members, member]);
+      addMemberMutation.mutate(member);
     }
   };
 
   // Handle member deletion
   const handleDeleteMember = () => {
     if (selectedMember) {
-      setMembers(members.filter((m) => m.id !== selectedMember.id));
-      toast.success("Member deleted successfully");
-      setIsDeleteDialogOpen(false);
-      setSelectedMember(null);
+      deleteMemberMutation.mutate(selectedMember._id || selectedMember.id);
     }
   };
 
@@ -116,19 +171,35 @@ const Members = () => {
           </Button>
         </div>
 
+        {/* Loading or Error States */}
+        {isLoading && (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2 text-lg">Loading members...</span>
+          </div>
+        )}
+
+        {isError && (
+          <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+            Failed to load members. Please try again later.
+          </div>
+        )}
+
         {/* Members Table */}
-        <DataTable
-          data={members}
-          columns={columns}
-          onEdit={(member) => {
-            setSelectedMember(member);
-            setIsEditDialogOpen(true);
-          }}
-          onDelete={(member) => {
-            setSelectedMember(member);
-            setIsDeleteDialogOpen(true);
-          }}
-        />
+        {!isLoading && !isError && (
+          <DataTable
+            data={members}
+            columns={columns}
+            onEdit={(member) => {
+              setSelectedMember(member);
+              setIsEditDialogOpen(true);
+            }}
+            onDelete={(member) => {
+              setSelectedMember(member);
+              setIsDeleteDialogOpen(true);
+            }}
+          />
+        )}
 
         {/* Add/Edit Member Form */}
         <MemberForm

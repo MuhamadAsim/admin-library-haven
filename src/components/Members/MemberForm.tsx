@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,21 @@ export function MemberForm({ isOpen, onClose, onSave, initialData, mode }: Membe
     }
   );
 
+  // Update form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      // Convert MongoDB ISO date to YYYY-MM-DD for date input
+      const membershipDate = initialData.membershipDate ? 
+        new Date(initialData.membershipDate).toISOString().split('T')[0] : 
+        new Date().toISOString().split('T')[0];
+        
+      setFormData({
+        ...initialData,
+        membershipDate
+      });
+    }
+  }, [initialData]);
+
   const handleChange = (field: keyof Member, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -57,14 +72,6 @@ export function MemberForm({ isOpen, onClose, onSave, initialData, mode }: Membe
     
     // Save the member
     onSave(formData);
-    onClose();
-    
-    // Show success toast
-    toast.success(
-      mode === 'create' 
-        ? "Member added successfully" 
-        : "Member updated successfully"
-    );
   };
 
   return (
