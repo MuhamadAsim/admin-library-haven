@@ -15,7 +15,8 @@ export function EmailConfig({ isOpen, onClose }: EmailConfigProps) {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
-    serviceId: ""
+    serviceId: "",
+    templateId: "", // Added field for email template ID
   });
 
   const handleChange = (field: string, value: string) => {
@@ -93,6 +94,18 @@ export function EmailConfig({ isOpen, onClose }: EmailConfigProps) {
                 onChange={(e) => handleChange('serviceId', e.target.value)}
                 className="subtle-input"
                 placeholder="Enter your EmailJS service ID"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="templateId">EmailJS Template ID</Label>
+              <Input
+                id="templateId"
+                type="text"
+                value={formData.templateId}
+                onChange={(e) => handleChange('templateId', e.target.value)}
+                className="subtle-input"
+                placeholder="Enter your EmailJS template ID"
               />
             </div>
           </div>

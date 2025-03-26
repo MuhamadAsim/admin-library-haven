@@ -4,8 +4,7 @@ import MainLayout from "../components/Layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Users, CreditCard, Library, BookMarked, AlertTriangle } from "lucide-react";
-import { members, books, dues } from "@/lib/data";
-import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 
 // Animated counter hook
 const useAnimatedCounter = (targetValue: number, duration: number = 1000) => {
@@ -38,26 +37,22 @@ const useAnimatedCounter = (targetValue: number, duration: number = 1000) => {
 };
 
 const Index = () => {
-  // Summary statistics
-  const totalMembers = members.length;
-  const activeMembers = members.filter(m => m.status === 'active').length;
-  const totalBooks = books.length;
-  const availableBooks = books.filter(b => b.status === 'available').length;
-  const borrowedBooks = books.filter(b => b.status === 'borrowed').length;
-  const pendingDues = dues.filter(d => d.status === 'pending').length;
+  // Load placeholders for stats while API data is loading
+  const stats = {
+    members: { total: 0, active: 0 },
+    books: { total: 0, available: 0, borrowed: 0 },
+    dues: { pending: 0, total: 0 }
+  };
   
-  // Animated counters
-  const animatedTotalMembers = useAnimatedCounter(totalMembers);
-  const animatedActiveMembers = useAnimatedCounter(activeMembers);
-  const animatedTotalBooks = useAnimatedCounter(totalBooks);
-  const animatedAvailableBooks = useAnimatedCounter(availableBooks);
-  const animatedBorrowedBooks = useAnimatedCounter(borrowedBooks);
-  const animatedPendingDues = useAnimatedCounter(pendingDues);
+  const animatedTotalMembers = useAnimatedCounter(stats.members.total);
+  const animatedActiveMembers = useAnimatedCounter(stats.members.active);
+  const animatedTotalBooks = useAnimatedCounter(stats.books.total);
+  const animatedAvailableBooks = useAnimatedCounter(stats.books.available);
+  const animatedBorrowedBooks = useAnimatedCounter(stats.books.borrowed);
+  const animatedPendingDues = useAnimatedCounter(stats.dues.pending);
   
-  // Get recent activities (last 5 dues)
-  const recentActivities = [...dues]
-    .sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime())
-    .slice(0, 5);
+  // Recent activities placeholder
+  const recentActivities: any[] = [];
   
   return (
     <MainLayout>
@@ -127,7 +122,7 @@ const Index = () => {
             <CardContent className="relative z-10">
               <div className="text-3xl font-bold">{animatedPendingDues}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {dues.reduce((acc, due) => due.status === 'pending' ? acc + due.fineAmount : acc, 0).toFixed(2)} USD total pending
+                {stats.dues.total.toFixed(2)} USD total pending
               </p>
               <div className="mt-4">
                 <Button size="sm" variant="outline" asChild>
@@ -175,41 +170,19 @@ const Index = () => {
               <CardTitle className="text-base font-medium">Recent Activities</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentActivities.map((due) => {
-                  // Find book and member
-                  const book = books.find(b => b.id === due.bookId);
-                  const member = members.find(m => m.id === due.memberId);
-                  
-                  if (!book || !member) return null;
-                  
-                  return (
-                    <div key={due.id} className="flex items-start space-x-3">
-                      <div className={cn(
-                        "h-8 w-8 rounded-full flex items-center justify-center",
-                        due.returnDate ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"
-                      )}>
-                        {due.returnDate ? <BookMarked className="h-4 w-4" /> : <Library className="h-4 w-4" />}
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium">
-                          {due.returnDate ? `${member.name} returned` : `${member.name} borrowed`}{" "}
-                          <span className="font-semibold">{book.title}</span>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {due.returnDate ? new Date(due.returnDate).toLocaleDateString() : new Date(due.issueDate).toLocaleDateString()}
-                        </p>
-                      </div>
-                      {!due.returnDate && new Date(due.dueDate) < new Date() && (
-                        <div className="flex items-center text-amber-600">
-                          <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-                          <span className="text-xs">Overdue</span>
-                        </div>
-                      )}
+              {recentActivities.length > 0 ? (
+                <div className="space-y-4">
+                  {recentActivities.map((activity, index) => (
+                    <div key={index} className="flex items-start space-x-3">
+                      {/* Activity content will be populated here when we have data */}
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No recent activities to display</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
