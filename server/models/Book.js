@@ -32,6 +32,16 @@ const BookSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  totalCopies: {
+    type: Number,
+    required: true,
+    default: 1
+  },
+  availableCopies: {
+    type: Number,
+    required: true,
+    default: 1
+  },
   status: {
     type: String,
     required: true,
@@ -46,6 +56,16 @@ const BookSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+});
+
+// Update book status based on available copies
+BookSchema.pre('save', function(next) {
+  if (this.availableCopies === 0) {
+    this.status = 'borrowed';
+  } else if (this.availableCopies < this.totalCopies) {
+    this.status = 'available';
+  }
+  next();
 });
 
 module.exports = mongoose.model('Book', BookSchema);

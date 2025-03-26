@@ -1,10 +1,8 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Book } from "@/lib/data";
@@ -27,10 +25,18 @@ export function BookForm({ isOpen, onClose, onSave, initialData, mode }: BookFor
       publishedYear: new Date().getFullYear(),
       genre: "",
       description: "",
+      totalCopies: 1,
+      availableCopies: 1,
       status: "available",
-      coverImage: "https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=2070&auto=format&fit=crop"
+      coverImage: ""
     }
   );
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    }
+  }, [initialData]);
 
   const handleChange = (field: keyof Book, value: string | number) => {
     setFormData(prev => ({
@@ -41,31 +47,61 @@ export function BookForm({ isOpen, onClose, onSave, initialData, mode }: BookFor
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
-    if (!formData.title.trim()) {
-      toast.error("Book title is required");
+    if (!formData.title) {
+      toast.error("Title is required");
       return;
     }
-    
-    if (!formData.author.trim()) {
+
+    if (!formData.author) {
       toast.error("Author is required");
       return;
     }
-    
-    if (!formData.isbn.trim()) {
+
+    if (!formData.isbn) {
       toast.error("ISBN is required");
       return;
     }
-    
+
+    if (!formData.publishedYear) {
+      toast.error("Published Year is required");
+      return;
+    }
+
+    if (!formData.genre) {
+      toast.error("Genre is required");
+      return;
+    }
+
+    if (!formData.description) {
+      toast.error("Description is required");
+      return;
+    }
+
+    if (!formData.totalCopies || formData.totalCopies <= 0) {
+      toast.error("Total Copies must be greater than 0");
+      return;
+    }
+
+    if (!formData.availableCopies || formData.availableCopies < 0) {
+      toast.error("Available Copies cannot be negative");
+      return;
+    }
+
+    if (formData.availableCopies > formData.totalCopies) {
+      toast.error("Available Copies cannot be greater than Total Copies");
+      return;
+    }
+
     // Save the book
     onSave(formData);
     onClose();
-    
+
     // Show success toast
     toast.success(
-      mode === 'create' 
-        ? "Book added successfully" 
+      mode === 'create'
+        ? "Book added successfully"
         : "Book updated successfully"
     );
   };
@@ -78,109 +114,111 @@ export function BookForm({ isOpen, onClose, onSave, initialData, mode }: BookFor
             {mode === 'create' ? 'Add New Book' : 'Edit Book'}
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
+                type="text"
                 value={formData.title}
                 onChange={(e) => handleChange('title', e.target.value)}
-                placeholder="Book Title"
                 className="subtle-input"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="author">Author</Label>
               <Input
                 id="author"
+                type="text"
                 value={formData.author}
                 onChange={(e) => handleChange('author', e.target.value)}
-                placeholder="Author Name"
                 className="subtle-input"
               />
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="isbn">ISBN</Label>
-                <Input
-                  id="isbn"
-                  value={formData.isbn}
-                  onChange={(e) => handleChange('isbn', e.target.value)}
-                  placeholder="9781234567890"
-                  className="subtle-input"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="publishedYear">Published Year</Label>
-                <Input
-                  id="publishedYear"
-                  type="number"
-                  value={formData.publishedYear}
-                  onChange={(e) => handleChange('publishedYear', parseInt(e.target.value))}
-                  placeholder="2023"
-                  className="subtle-input"
-                />
-              </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="isbn">ISBN</Label>
+              <Input
+                id="isbn"
+                type="text"
+                value={formData.isbn}
+                onChange={(e) => handleChange('isbn', e.target.value)}
+                className="subtle-input"
+              />
             </div>
-            
+
+            <div className="space-y-2">
+              <Label htmlFor="publishedYear">Published Year</Label>
+              <Input
+                id="publishedYear"
+                type="number"
+                value={formData.publishedYear}
+                onChange={(e) => handleChange('publishedYear', parseInt(e.target.value))}
+                className="subtle-input"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="genre">Genre</Label>
               <Input
                 id="genre"
+                type="text"
                 value={formData.genre}
                 onChange={(e) => handleChange('genre', e.target.value)}
-                placeholder="Fiction, Non-fiction, etc."
                 className="subtle-input"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
-              <Textarea
+              <Input
                 id="description"
+                type="text"
                 value={formData.description}
                 onChange={(e) => handleChange('description', e.target.value)}
-                placeholder="Brief description of the book..."
-                className="subtle-input resize-none"
-                rows={3}
+                className="subtle-input"
               />
             </div>
-            
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="totalCopies">Total Copies</Label>
+                <Input
+                  id="totalCopies"
+                  type="number"
+                  value={formData.totalCopies}
+                  onChange={(e) => handleChange('totalCopies', parseInt(e.target.value))}
+                  className="subtle-input"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="availableCopies">Available Copies</Label>
+                <Input
+                  id="availableCopies"
+                  type="number"
+                  value={formData.availableCopies}
+                  onChange={(e) => handleChange('availableCopies', parseInt(e.target.value))}
+                  className="subtle-input"
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="coverImage">Cover Image URL</Label>
               <Input
                 id="coverImage"
+                type="text"
                 value={formData.coverImage}
                 onChange={(e) => handleChange('coverImage', e.target.value)}
-                placeholder="https://example.com/image.jpg"
                 className="subtle-input"
               />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select 
-                value={formData.status} 
-                onValueChange={(value) => handleChange('status', value as 'available' | 'borrowed' | 'reserved' | 'maintenance')}
-              >
-                <SelectTrigger id="status" className="subtle-input">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="available">Available</SelectItem>
-                  <SelectItem value="borrowed">Borrowed</SelectItem>
-                  <SelectItem value="reserved">Reserved</SelectItem>
-                  <SelectItem value="maintenance">Maintenance</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
-          
+
           <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel

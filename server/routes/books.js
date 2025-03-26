@@ -2,6 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const Book = require('../models/Book');
+const Due = require('../models/Due');
+const Reservation = require('../models/Reservation');
 
 // @route   GET api/books
 // @desc    Get all books
@@ -48,7 +50,9 @@ router.post('/', async (req, res) => {
     publishedYear, 
     genre, 
     description, 
-    status, 
+    status,
+    totalCopies,
+    availableCopies, 
     coverImage 
   } = req.body;
   
@@ -68,6 +72,8 @@ router.post('/', async (req, res) => {
       genre,
       description,
       status,
+      totalCopies: totalCopies || 1,
+      availableCopies: availableCopies || totalCopies || 1,
       coverImage
     });
     
@@ -91,6 +97,8 @@ router.put('/:id', async (req, res) => {
     genre, 
     description, 
     status, 
+    totalCopies,
+    availableCopies,
     coverImage 
   } = req.body;
   
@@ -103,6 +111,8 @@ router.put('/:id', async (req, res) => {
   if (genre) bookFields.genre = genre;
   if (description) bookFields.description = description;
   if (status) bookFields.status = status;
+  if (totalCopies) bookFields.totalCopies = totalCopies;
+  if (availableCopies !== undefined) bookFields.availableCopies = availableCopies;
   if (coverImage) bookFields.coverImage = coverImage;
   
   try {
@@ -126,6 +136,24 @@ router.put('/:id', async (req, res) => {
       { new: true }
     );
     
+    // Check for pending reservations if copies become available
+    if (bookFields.availableCopies > 0 && book.availableCopies > 0) {
+      const pendingReservations = await Reservation.find({
+        bookId: book._id,
+        status: 'pending'
+      }).populate('memberId', 'name email')
+        .sort({ reservationDate: 1 })
+        .limit(book.availableCopies);
+      
+      // Mark these reservations for notification
+      for (const reservation of pendingReservations) {
+        await Reservation.findByIdAndUpdate(
+          reservation._id,
+          { $set: { notificationSent: false } }
+        );
+      }
+    }
+    
     res.json(book);
   } catch (err) {
     console.error(err.message);
@@ -147,6 +175,21 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ msg: 'Book not found' });
     }
     
+    // Check if there are any active dues for this book
+    const activeDues = await Due.find({ 
+      bookId: req.params.id,
+      returnDate: null
+    });
+    
+    if (activeDues.length > 0) {
+      return res.status(400).json({ 
+        msg: 'Cannot delete book with active loans. Please return all copies first.' 
+      });
+    }
+    
+    // Delete all reservations for this book
+    await Reservation.deleteMany({ bookId: req.params.id });
+    
     await Book.findByIdAndRemove(req.params.id);
     
     res.json({ msg: 'Book removed' });
@@ -155,6 +198,64 @@ router.delete('/:id', async (req, res) => {
     if (err.kind === 'ObjectId') {
       return res.status(404).json({ msg: 'Book not found' });
     }
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/books/:id/reserve
+// @desc    Reserve a book
+// @access  Public
+router.post('/:id/reserve', async (req, res) => {
+  const { memberId } = req.body;
+  
+  try {
+    const book = await Book.findById(req.params.id);
+    
+    if (!book) {
+      return res.status(404).json({ msg: 'Book not found' });
+    }
+    
+    const member = await Member.findById(memberId);
+    
+    if (!member) {
+      return res.status(404).json({ msg: 'Member not found' });
+    }
+    
+    // Check if the member already has a pending reservation for this book
+    const existingReservation = await Reservation.findOne({
+      memberId,
+      bookId: req.params.id,
+      status: 'pending'
+    });
+    
+    if (existingReservation) {
+      return res.status(400).json({ msg: 'Member already has a pending reservation for this book' });
+    }
+    
+    // If book is available, no need to reserve
+    if (book.availableCopies > 0) {
+      return res.status(400).json({ 
+        msg: 'Book is currently available, no need to reserve',
+        availableCopies: book.availableCopies
+      });
+    }
+    
+    // Create a new reservation
+    const reservation = new Reservation({
+      memberId,
+      bookId: req.params.id
+    });
+    
+    await reservation.save();
+    
+    // Populate the response
+    const populatedReservation = await Reservation.findById(reservation._id)
+      .populate('memberId', 'name email')
+      .populate('bookId', 'title author');
+    
+    res.json(populatedReservation);
+  } catch (err) {
+    console.error(err.message);
     res.status(500).send('Server Error');
   }
 });

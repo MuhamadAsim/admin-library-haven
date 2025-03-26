@@ -29,6 +29,7 @@ connectDB();
 app.use('/api/members', require('./routes/members'));
 app.use('/api/books', require('./routes/books'));
 app.use('/api/dues', require('./routes/dues'));
+app.use('/api/reservations', require('./routes/reservations'));
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
