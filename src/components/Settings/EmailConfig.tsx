@@ -29,7 +29,7 @@ export function EmailConfig({ isOpen, onClose }: EmailConfigProps) {
     e.preventDefault();
     
     try {
-      // In a real app, this would call the Electron API to save the config
+      // Call to Electron to save the email configuration
       if (window.electron) {
         await window.electron.saveEmailConfig(formData);
         toast.success("Email configuration saved successfully");

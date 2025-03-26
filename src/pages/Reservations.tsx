@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { BookmarkPlus, AlertTriangle, BookCheck, Calendar } from "lucide-react";
+import { BookmarkPlus, AlertTriangle, BookCheck, Calendar, X } from "lucide-react";
 import { Reservation, reservations as initialReservations, getMemberName, getBookTitle } from "@/lib/data";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -70,7 +70,8 @@ const Reservations = () => {
           },
           cancelled: { 
             label: "Cancelled", 
-            classes: "bg-gray-100 text-gray-800" 
+            classes: "bg-gray-100 text-gray-800",
+            icon: <X className="h-3.5 w-3.5 mr-1.5" />
           },
         };
         
@@ -78,7 +79,7 @@ const Reservations = () => {
         
         return (
           <Badge variant="outline" className={cn("font-normal flex items-center", config.classes)}>
-            {config.icon && config.icon}
+            {config.icon}
             {config.label}
           </Badge>
         );

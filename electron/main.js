@@ -13,7 +13,7 @@ function createWindow() {
     height: 800,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false,
+      contextIsolation: true, // Enable context isolation for security
       preload: path.join(__dirname, 'preload.js'),
     },
   });
@@ -68,6 +68,10 @@ ipcMain.handle('save-email-config', async (event, config) => {
   try {
     // In a real app, this would securely store the email configuration
     console.log('Email configuration saved:', config);
+    
+    // Update the notification service with the new email configuration
+    // This would normally be done by passing the config to the notification service
+    
     return { success: true };
   } catch (error) {
     console.error('Error saving email config:', error);
