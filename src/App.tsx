@@ -14,8 +14,11 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Get saved theme from localStorage or default to system
+const savedTheme = localStorage.getItem("vite-ui-theme") || "system";
+
 const App = () => (
-  <ThemeProvider defaultTheme="light">
+  <ThemeProvider defaultTheme={savedTheme as "light" | "dark" | "system"}>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
