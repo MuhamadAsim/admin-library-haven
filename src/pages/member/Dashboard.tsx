@@ -1,10 +1,9 @@
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Book, BookOpen, Clock, Wallet2 } from "lucide-react";
 import MemberLayout from "@/components/Layout/MemberLayout";
 import { authService } from "@/services/authService";
-import api from "@/services/api";
 
 interface BookCountStats {
   borrowed: number;
@@ -20,29 +19,7 @@ export default function MemberDashboard() {
     overdue: 0,
     dues: 0
   });
-  const [isLoading, setIsLoading] = useState(true);
   const user = authService.getCurrentUser();
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        // In a real app, you would have actual API endpoints for these stats
-        // For now, we'll just simulate some data
-        setStats({
-          borrowed: 2,
-          reserved: 1,
-          overdue: 0,
-          dues: 15
-        });
-      } catch (error) {
-        console.error("Failed to fetch stats:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
 
   return (
     <MemberLayout>
@@ -58,7 +35,7 @@ export default function MemberDashboard() {
               <Book className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{isLoading ? "..." : stats.borrowed}</div>
+              <div className="text-2xl font-bold">{stats.borrowed}</div>
               <p className="text-xs text-muted-foreground">
                 Active borrows
               </p>
@@ -73,7 +50,7 @@ export default function MemberDashboard() {
               <BookOpen className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{isLoading ? "..." : stats.reserved}</div>
+              <div className="text-2xl font-bold">{stats.reserved}</div>
               <p className="text-xs text-muted-foreground">
                 Pending reservations
               </p>
@@ -88,7 +65,7 @@ export default function MemberDashboard() {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{isLoading ? "..." : stats.overdue}</div>
+              <div className="text-2xl font-bold">{stats.overdue}</div>
               <p className="text-xs text-muted-foreground">
                 Return soon to avoid fees
               </p>
@@ -103,7 +80,7 @@ export default function MemberDashboard() {
               <Wallet2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${isLoading ? "..." : stats.dues}</div>
+              <div className="text-2xl font-bold">${stats.dues}</div>
               <p className="text-xs text-muted-foreground">
                 Outstanding payments
               </p>
@@ -120,25 +97,8 @@ export default function MemberDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">Book borrowed: "The Great Gatsby"</p>
-                    <p className="text-xs text-muted-foreground">2 days ago · Due in 12 days</p>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">Book reserved: "To Kill a Mockingbird"</p>
-                    <p className="text-xs text-muted-foreground">1 week ago · Waiting for pickup</p>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">Book returned: "1984"</p>
-                    <p className="text-xs text-muted-foreground">2 weeks ago · On time</p>
-                  </div>
-                </div>
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">No recent activities</p>
               </div>
             </CardContent>
           </Card>
@@ -151,19 +111,8 @@ export default function MemberDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">"The Great Gatsby" by F. Scott Fitzgerald</p>
-                    <p className="text-xs text-muted-foreground">Due in 12 days · May 16, 2025</p>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">"Brave New World" by Aldous Huxley</p>
-                    <p className="text-xs text-muted-foreground">Due in 5 days · May 9, 2025</p>
-                  </div>
-                </div>
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">No books due soon</p>
               </div>
             </CardContent>
           </Card>

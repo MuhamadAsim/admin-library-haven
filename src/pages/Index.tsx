@@ -1,9 +1,8 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Users, CreditCard, Library, BookMarked, AlertTriangle } from "lucide-react";
+import { BookOpen, Users, CreditCard, Library, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 // Animated counter hook
@@ -11,7 +10,6 @@ const useAnimatedCounter = (targetValue: number, duration: number = 1000) => {
   const [count, setCount] = useState(0);
   
   useEffect(() => {
-    // If target is 0, don't animate
     if (targetValue === 0) {
       setCount(0);
       return;
@@ -37,7 +35,6 @@ const useAnimatedCounter = (targetValue: number, duration: number = 1000) => {
 };
 
 const Index = () => {
-  // Load placeholders for stats while API data is loading
   const stats = {
     members: { total: 0, active: 0 },
     books: { total: 0, available: 0, borrowed: 0 },
@@ -51,7 +48,6 @@ const Index = () => {
   const animatedBorrowedBooks = useAnimatedCounter(stats.books.borrowed);
   const animatedPendingDues = useAnimatedCounter(stats.dues.pending);
   
-  // Recent activities placeholder
   const recentActivities: any[] = [];
   
   return (
@@ -62,7 +58,6 @@ const Index = () => {
           <p className="text-muted-foreground">Manage your library operations efficiently with our admin system.</p>
         </div>
         
-        {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card className="floating-card glass-card overflow-hidden">
             <CardHeader className="pb-2 relative z-10">
@@ -122,7 +117,7 @@ const Index = () => {
             <CardContent className="relative z-10">
               <div className="text-3xl font-bold">{animatedPendingDues}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                {stats.dues.total.toFixed(2)} USD total pending
+                ${stats.dues.total.toFixed(2)} USD total pending
               </p>
               <div className="mt-4">
                 <Button size="sm" variant="outline" asChild>
@@ -134,7 +129,6 @@ const Index = () => {
           </Card>
         </div>
         
-        {/* Quick Actions */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="glass-card">
             <CardHeader className="pb-2">
@@ -164,25 +158,14 @@ const Index = () => {
             </CardContent>
           </Card>
           
-          {/* Recent Activities */}
           <Card className="glass-card md:col-span-2">
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-medium">Recent Activities</CardTitle>
             </CardHeader>
             <CardContent>
-              {recentActivities.length > 0 ? (
-                <div className="space-y-4">
-                  {recentActivities.map((activity, index) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      {/* Activity content will be populated here when we have data */}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No recent activities to display</p>
-                </div>
-              )}
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No recent activities to display</p>
+              </div>
             </CardContent>
           </Card>
         </div>
