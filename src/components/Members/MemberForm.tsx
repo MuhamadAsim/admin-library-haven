@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Member } from "@/lib/data";
+import api from "@/services/api";
 
 interface MemberFormProps {
   isOpen: boolean;
@@ -28,6 +29,9 @@ export function MemberForm({ isOpen, onClose, onSave, initialData, mode }: Membe
       status: "active"
     }
   );
+  
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   // Update form when initialData changes
   useEffect(() => {
@@ -41,6 +45,10 @@ export function MemberForm({ isOpen, onClose, onSave, initialData, mode }: Membe
         ...initialData,
         membershipDate
       });
+      
+      // Reset passwords when editing
+      setPassword("");
+      setConfirmPassword("");
     }
   }, [initialData]);
 
@@ -51,7 +59,7 @@ export function MemberForm({ isOpen, onClose, onSave, initialData, mode }: Membe
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate form
@@ -70,8 +78,49 @@ export function MemberForm({ isOpen, onClose, onSave, initialData, mode }: Membe
       return;
     }
     
-    // Save the member
-    onSave(formData);
+    // Additional validation for password when creating a new member
+    if (mode === 'create') {
+      if (!password) {
+        toast.error("Password is required");
+        return;
+      }
+      
+      if (password.length < 6) {
+        toast.error("Password must be at least 6 characters");
+        return;
+      }
+      
+      if (password !== confirmPassword) {
+        toast.error("Passwords do not match");
+        return;
+      }
+    }
+    
+    try {
+      // Save the member first
+      const savedMember = await onSave(formData);
+      
+      // If creating a new member, also create a user account
+      if (mode === 'create' && savedMember && savedMember._id) {
+        try {
+          // Register user with the member ID
+          await api.post('/auth/register', {
+            email: formData.email,
+            password: password,
+            memberId: savedMember._id
+          });
+          
+          toast.success("Member account created successfully");
+        } catch (error: any) {
+          toast.error(error.response?.data?.msg || "Failed to create member account");
+          // The member was created but user account failed - admin can try again later
+        }
+      }
+      
+      onClose();
+    } catch (error) {
+      toast.error("An error occurred while saving the member");
+    }
   };
 
   return (
@@ -107,6 +156,34 @@ export function MemberForm({ isOpen, onClose, onSave, initialData, mode }: Membe
                 className="subtle-input"
               />
             </div>
+            
+            {mode === 'create' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="subtle-input"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="subtle-input"
+                  />
+                </div>
+              </>
+            )}
             
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>

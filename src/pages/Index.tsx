@@ -49,8 +49,6 @@ const Index = () => {
   const animatedBorrowedBooks = useAnimatedCounter(stats.books.borrowed);
   const animatedPendingDues = useAnimatedCounter(stats.dues.pending);
   
-  const recentActivities: any[] = [];
-  
   return (
     <MainLayout>
       <div className="space-y-8">
