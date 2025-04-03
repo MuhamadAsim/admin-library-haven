@@ -1,10 +1,10 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, BookOpen, Check } from "lucide-react";
+import { Search, BookOpen } from "lucide-react";
 import MemberLayout from "@/components/Layout/MemberLayout";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,69 +20,8 @@ interface Book {
 export default function MemberBooks() {
   const [books, setBooks] = useState<Book[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        // In a real app, you would fetch from your API
-        // For demo, we'll use some sample data
-        const sampleBooks: Book[] = [
-          {
-            id: "1",
-            title: "To Kill a Mockingbird",
-            author: "Harper Lee",
-            genre: "Fiction",
-            available: true,
-          },
-          {
-            id: "2",
-            title: "1984",
-            author: "George Orwell",
-            genre: "Science Fiction",
-            available: false,
-          },
-          {
-            id: "3",
-            title: "The Great Gatsby",
-            author: "F. Scott Fitzgerald",
-            genre: "Fiction",
-            available: true,
-          },
-          {
-            id: "4",
-            title: "Pride and Prejudice",
-            author: "Jane Austen",
-            genre: "Romance",
-            available: true,
-          },
-          {
-            id: "5",
-            title: "The Catcher in the Rye",
-            author: "J.D. Salinger",
-            genre: "Fiction",
-            available: false,
-          },
-          {
-            id: "6",
-            title: "The Hobbit",
-            author: "J.R.R. Tolkien",
-            genre: "Fantasy",
-            available: true,
-          },
-        ];
-        
-        setBooks(sampleBooks);
-      } catch (error) {
-        console.error("Error fetching books:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchBooks();
-  }, []);
 
   const filteredBooks = books.filter(book =>
     book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -138,9 +77,9 @@ export default function MemberBooks() {
             {filteredBooks.length === 0 ? (
               <div className="text-center py-12">
                 <BookOpen className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-medium">No books found</h3>
+                <h3 className="mt-4 text-lg font-medium">No books available</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  We couldn't find any books matching your search.
+                  There are currently no books in the library catalog.
                 </p>
               </div>
             ) : (
