@@ -26,6 +26,7 @@ const connectDB = async () => {
 connectDB();
 
 // Define Routes
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/members', require('./routes/members'));
 app.use('/api/books', require('./routes/books'));
 app.use('/api/dues', require('./routes/dues'));

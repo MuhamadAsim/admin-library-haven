@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, KeyRound } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { authService } from "@/services/authService";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -21,43 +22,26 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // In a real app, this would be a call to your authentication API
-      // For demo purposes, we're using simple credential checks
+      const { user } = await authService.login(email, password);
       
-      if (email === "admin@library.com" && password === "admin123") {
-        localStorage.setItem("userRole", "admin");
-        localStorage.setItem("userEmail", email);
+      if (user.role === 'admin') {
         toast({
           title: "Login successful",
           description: "Welcome back, Admin!",
         });
         navigate("/");
-        return;
-      }
-      
-      // Check for member login - in a real app, this would validate against your database
-      if (email.includes("@") && password.length >= 6) {
-        localStorage.setItem("userRole", "member");
-        localStorage.setItem("userEmail", email);
+      } else {
         toast({
           title: "Login successful",
           description: "Welcome to the Library System!",
         });
         navigate("/member/dashboard");
-        return;
       }
-
-      // If neither admin nor member credentials match
-      toast({
-        variant: "destructive",
-        title: "Invalid credentials",
-        description: "Please check your email and password.",
-      });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: "An error occurred during login. Please try again.",
+        description: error.response?.data?.msg || "Invalid credentials. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -127,9 +111,7 @@ export default function Login() {
 
         <div className="mt-4 text-center text-sm text-muted-foreground">
           <p>
-            For demo: use admin@library.com / admin123 for admin access
-            <br />
-            Or any email with a password (min 6 chars) for member access
+            Default admin login: admin@gmail.com / admin123
           </p>
         </div>
       </div>
