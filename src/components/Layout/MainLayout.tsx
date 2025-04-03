@@ -1,10 +1,13 @@
 
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
-import { Book, User, CreditCard, BarChart3, Settings, Menu, X } from "lucide-react";
+import { Book, User, CreditCard, BarChart3, Settings, Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { authService } from "@/services/authService";
+import { useToast } from "@/hooks/use-toast";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -14,6 +17,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   // Navigation items
   const navItems = [
@@ -32,6 +37,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
     // Close mobile menu when route changes
     setIsMobileMenuOpen(false);
   }, [location]);
+
+  const handleLogout = () => {
+    authService.logout();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate("/login");
+  };
 
   if (!isMounted) return null;
 
@@ -62,13 +76,22 @@ export default function MainLayout({ children }: MainLayoutProps) {
               </nav>
             </SidebarContent>
             <div className="p-4 border-t">
-              <div className="flex items-center">
+              <div className="flex items-center mb-4">
                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                   A
                 </div>
                 <div className="ml-3">
                   <p className="text-sm font-medium">Admin User</p>
                   <p className="text-xs text-muted-foreground">admin@library.com</p>
+                </div>
+              </div>
+              <div className="flex flex-col space-y-2">
+                <Button variant="outline" className="w-full justify-start" onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </Button>
+                <div className="flex justify-center">
+                  <ThemeToggle />
                 </div>
               </div>
             </div>
@@ -116,7 +139,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
               ))}
             </nav>
             <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
-              <div className="flex items-center">
+              <div className="flex items-center mb-4">
                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                   A
                 </div>
@@ -125,6 +148,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   <p className="text-xs text-muted-foreground">admin@library.com</p>
                 </div>
               </div>
+              <Button variant="outline" className="w-full justify-start mb-2" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
             </div>
           </div>
         </div>
