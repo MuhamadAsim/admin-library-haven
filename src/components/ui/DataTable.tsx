@@ -26,6 +26,7 @@ import {
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,7 @@ type DataTableProps<T> = {
   onDelete?: (item: T) => void;
   onView?: (item: T) => void;
   idField?: keyof T;
+  isLoading?: boolean;
 };
 
 export function DataTable<T>({ 
@@ -51,7 +53,8 @@ export function DataTable<T>({
   onEdit, 
   onDelete, 
   onView,
-  idField = "id" as keyof T 
+  idField = "id" as keyof T,
+  isLoading = false
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<keyof T | string | null>(null);
@@ -161,91 +164,97 @@ export function DataTable<T>({
       </div>
       
       <div className="rounded-lg border bg-card shadow-sm overflow-hidden animate-scale-in">
-        <Table>
-          <TableHeader className="bg-muted/50">
-            <TableRow>
-              {columns.map((column, index) => (
-                <TableHead 
-                  key={index}
-                  className={cn(
-                    "font-medium",
-                    column.enableSorting && "cursor-pointer select-none"
-                  )}
-                  onClick={() => {
-                    if (column.enableSorting) {
-                      handleSort(column.accessorKey);
-                    }
-                  }}
-                >
-                  <div className="flex items-center">
-                    {column.header}
-                    {getSortIcon(column)}
-                  </div>
-                </TableHead>
-              ))}
-              {(onView || onEdit || onDelete) && (
-                <TableHead className="w-[100px]">Actions</TableHead>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedData.length > 0 ? (
-              paginatedData.map((item) => (
-                <TableRow key={String(item[idField])} className="hover:bg-muted/40 transition-colors">
-                  {columns.map((column, columnIndex) => (
-                    <TableCell key={columnIndex}>
-                      {column.cell
-                        ? column.cell(item)
-                        : getAccessorValue(item, column.accessorKey)}
-                    </TableCell>
-                  ))}
-                  {(onView || onEdit || onDelete) && (
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="glass-card">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          {onView && (
-                            <DropdownMenuItem onClick={() => onView(item)}>
-                              View details
-                            </DropdownMenuItem>
-                          )}
-                          {onEdit && (
-                            <DropdownMenuItem onClick={() => onEdit(item)}>
-                              Edit
-                            </DropdownMenuItem>
-                          )}
-                          {onDelete && (
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => onDelete(item)}
-                            >
-                              Delete
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))
-            ) : (
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <Table>
+            <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableCell colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="h-24 text-center">
-                  No results found.
-                </TableCell>
+                {columns.map((column, index) => (
+                  <TableHead 
+                    key={index}
+                    className={cn(
+                      "font-medium",
+                      column.enableSorting && "cursor-pointer select-none"
+                    )}
+                    onClick={() => {
+                      if (column.enableSorting) {
+                        handleSort(column.accessorKey);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center">
+                      {column.header}
+                      {getSortIcon(column)}
+                    </div>
+                  </TableHead>
+                ))}
+                {(onView || onEdit || onDelete) && (
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                )}
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {paginatedData.length > 0 ? (
+                paginatedData.map((item) => (
+                  <TableRow key={String(item[idField])} className="hover:bg-muted/40 transition-colors">
+                    {columns.map((column, columnIndex) => (
+                      <TableCell key={columnIndex}>
+                        {column.cell
+                          ? column.cell(item)
+                          : getAccessorValue(item, column.accessorKey)}
+                      </TableCell>
+                    ))}
+                    {(onView || onEdit || onDelete) && (
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="glass-card">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {onView && (
+                              <DropdownMenuItem onClick={() => onView(item)}>
+                                View details
+                              </DropdownMenuItem>
+                            )}
+                            {onEdit && (
+                              <DropdownMenuItem onClick={() => onEdit(item)}>
+                                Edit
+                              </DropdownMenuItem>
+                            )}
+                            {onDelete && (
+                              <DropdownMenuItem 
+                                className="text-destructive"
+                                onClick={() => onDelete(item)}
+                              >
+                                Delete
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="h-24 text-center">
+                    No results found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
         
-        {totalPages > 1 && (
+        {!isLoading && totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t">
             <div className="text-sm text-muted-foreground">
               Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, sortedData.length)} of {sortedData.length} entries

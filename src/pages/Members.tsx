@@ -149,9 +149,9 @@ const Members = () => {
   };
 
   // Handle member deletion
-  const handleDeleteMember = () => {
+  const handleDeleteMember = async () => {
     if (selectedMember) {
-      deleteMemberMutation.mutate(selectedMember._id || selectedMember.id);
+      await deleteMemberMutation.mutateAsync(selectedMember._id || selectedMember.id);
     }
   };
 

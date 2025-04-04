@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { Due } from '@/lib/data';
 interface FormattedDue extends Due {
   type: 'late' | 'damage' | 'membership';
   amount: number;
+  bookTitle?: string;
 }
 
 export default function MemberDues() {
