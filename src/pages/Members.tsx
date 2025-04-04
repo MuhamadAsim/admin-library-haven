@@ -134,17 +134,17 @@ const Members = () => {
     },
   ];
 
-  // Handle form submission
-  const handleSaveMember = (member: Member) => {
+  // Handle form submission - Updated to return Promise
+  const handleSaveMember = async (member: Member): Promise<Member | void> => {
     if (isEditDialogOpen && selectedMember) {
       // Update existing member
-      updateMemberMutation.mutate({ 
+      return updateMemberMutation.mutateAsync({ 
         id: selectedMember._id || selectedMember.id, 
         member 
       });
     } else {
       // Add new member
-      addMemberMutation.mutate(member);
+      return addMemberMutation.mutateAsync(member);
     }
   };
 
