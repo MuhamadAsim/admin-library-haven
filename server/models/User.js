@@ -1,6 +1,5 @@
 
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
   email: {
@@ -32,35 +31,16 @@ const UserSchema = new mongoose.Schema({
   }
 });
 
-// Hash password before saving
-UserSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
-    return next();
-  }
+// Simple password comparison without encryption
+UserSchema.methods.comparePassword = function(candidatePassword) {
+  console.log('Comparing password for user:', this.email);
+  console.log('Stored password:', this.password);
+  console.log('Candidate password:', candidatePassword);
   
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Method to compare passwords
-UserSchema.methods.comparePassword = async function(candidatePassword) {
-  try {
-    console.log('Comparing password for user:', this.email);
-    console.log('Stored hashed password:', this.password);
-    console.log('Candidate password (not hashed):', candidatePassword);
-    
-    const isMatch = await bcrypt.compare(candidatePassword, this.password);
-    console.log('Password match result:', isMatch);
-    return isMatch;
-  } catch (error) {
-    console.error('Error comparing password:', error);
-    throw error;
-  }
+  // Direct string comparison
+  const isMatch = this.password === candidatePassword;
+  console.log('Password match result:', isMatch);
+  return isMatch;
 };
 
 module.exports = mongoose.model('User', UserSchema);

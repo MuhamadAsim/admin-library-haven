@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -82,11 +81,6 @@ export function MemberForm({ isOpen, onClose, onSave, initialData, mode }: Membe
     if (mode === 'create') {
       if (!password) {
         toast.error("Password is required");
-        return;
-      }
-      
-      if (password.length < 6) {
-        toast.error("Password must be at least 6 characters");
         return;
       }
       

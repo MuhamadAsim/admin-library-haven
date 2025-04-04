@@ -4,7 +4,6 @@ const router = express.Router();
 const User = require('../models/User');
 const Member = require('../models/Member');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const auth = require('../middleware/auth');
 
 // Helper to generate JWT token
@@ -34,7 +33,8 @@ router.post('/login', async (req, res) => {
     console.log(`User found: ${email}, role: ${user.role}`);
     console.log(`Attempting password verification...`);
     
-    const isMatch = await user.comparePassword(password);
+    // Simple direct password comparison
+    const isMatch = user.comparePassword(password);
     
     if (!isMatch) {
       console.log(`Password mismatch for user: ${email}`);
@@ -95,10 +95,10 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ msg: 'User already exists' });
     }
 
-    // Create new user
+    // Create new user with plaintext password
     user = new User({
       email,
-      password, // Will be hashed by the pre-save hook
+      password,
       role: 'member',
       memberId
     });
@@ -120,7 +120,7 @@ const seedDefaultAdmin = async () => {
     if (!adminExists) {
       console.log('Creating default admin account...');
       
-      // Create a new admin user with plaintext password - it will be hashed by the pre-save hook
+      // Create admin with plaintext password
       const admin = new User({
         email: 'admin@gmail.com',
         password: 'admin123',
