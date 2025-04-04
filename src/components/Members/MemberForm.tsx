@@ -12,7 +12,7 @@ import api from "@/services/api";
 interface MemberFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (member: Member) => void;
+  onSave: (member: Member) => Promise<Member | void>;
   initialData?: Member;
   mode: 'create' | 'edit';
 }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,22 +8,15 @@ import MemberLayout from "@/components/Layout/MemberLayout";
 import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
 import * as dueService from '@/services/dueService';
+import { Due } from '@/lib/data';
 
-interface Due {
-  id: string;
+interface FormattedDue extends Due {
+  type: 'late' | 'damage' | 'membership';
   amount: number;
-  bookId: {
-    title: string;
-  };
-  dueDate: string;
-  issueDate: string;
-  returnDate: string | null;
-  status: 'pending' | 'paid' | 'waived';
-  type?: 'late' | 'damage' | 'membership';
 }
 
 export default function MemberDues() {
-  const [dues, setDues] = useState<Due[]>([]);
+  const [dues, setDues] = useState<FormattedDue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -40,16 +32,19 @@ export default function MemberDues() {
         
         // Format the data to match our component's expected structure
         const formattedDues = data.map((due: any) => ({
-          id: due._id,
-          amount: due.fineAmount,
-          bookId: {
-            title: due.bookId.title
-          },
-          dueDate: due.dueDate,
+          id: due._id || due.id,
+          memberId: due.memberId,
+          bookId: typeof due.bookId === 'object' ? due.bookId._id || due.bookId.id : due.bookId,
           issueDate: due.issueDate,
+          dueDate: due.dueDate,
           returnDate: due.returnDate,
+          fineAmount: due.fineAmount,
           status: due.status,
-          type: due.returnDate ? 'late' : (due.fineAmount > 0 ? 'damage' : 'membership')
+          // Added properties for UI
+          amount: due.fineAmount,
+          type: (due.returnDate ? 'late' : (due.fineAmount > 0 ? 'damage' : 'membership')) as 'late' | 'damage' | 'membership',
+          // Handle both populated and non-populated bookId
+          bookTitle: due.bookId && typeof due.bookId === 'object' ? due.bookId.title : ''
         }));
         
         setDues(formattedDues);
@@ -169,10 +164,24 @@ export default function MemberDues() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Due</p>
-                <p className="text-2xl font-bold">${totalDue.toFixed(2)}</p>
+                <p className="text-2xl font-bold">${dues.filter(due => due.status === 'pending').reduce((sum, due) => sum + due.amount, 0).toFixed(2)}</p>
               </div>
-              {totalDue > 0 && (
-                <Button onClick={handlePayAll}>Pay All</Button>
+              {dues.filter(due => due.status === 'pending').length > 0 && (
+                <Button onClick={() => {
+                  const pendingDues = dues.filter(due => due.status === 'pending');
+                  pendingDues.forEach(async due => {
+                    await dueService.updateDue(due.id, { status: 'paid' });
+                  });
+                  
+                  setDues(dues.map(due => 
+                    due.status === 'pending' ? { ...due, status: 'paid' as const } : due
+                  ));
+                  
+                  toast({
+                    title: "All payments processed",
+                    description: `You have successfully paid $${pendingDues.reduce((sum, due) => sum + due.amount, 0).toFixed(2)}.`,
+                  });
+                }}>Pay All</Button>
               )}
             </CardContent>
           </Card>
@@ -181,10 +190,10 @@ export default function MemberDues() {
         <Tabs defaultValue="pending">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="pending">
-              Pending ({pendingDues.length})
+              Pending ({dues.filter(due => due.status === 'pending').length})
             </TabsTrigger>
             <TabsTrigger value="paid">
-              Paid ({paidDues.length})
+              Paid ({dues.filter(due => due.status === 'paid' || due.status === 'waived').length})
             </TabsTrigger>
           </TabsList>
           
@@ -195,7 +204,7 @@ export default function MemberDues() {
               </div>
             ) : (
               <>
-                {pendingDues.length === 0 ? (
+                {dues.filter(due => due.status === 'pending').length === 0 ? (
                   <div className="text-center py-12">
                     <DollarSign className="mx-auto h-12 w-12 text-muted-foreground" />
                     <h3 className="mt-4 text-lg font-medium">No pending dues</h3>
@@ -205,19 +214,29 @@ export default function MemberDues() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {pendingDues.map((due) => (
+                    {dues.filter(due => due.status === 'pending').map((due) => (
                       <Card key={due.id}>
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-start">
                             <CardTitle className="text-lg">${due.amount.toFixed(2)}</CardTitle>
-                            {getDueTypeBadge(due.type)}
+                            {due.type === 'late' ? (
+                              <Badge variant="outline" className="bg-yellow-500 text-white">Late Fee</Badge>
+                            ) : due.type === 'damage' ? (
+                              <Badge variant="outline" className="bg-red-500 text-white">Damage Fee</Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-blue-500 text-white">Membership</Badge>
+                            )}
                           </div>
                           <CardDescription>
-                            {due.bookId?.title && `Book: ${due.bookId.title}`}
+                            {due.bookTitle && `Book: ${due.bookTitle}`}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="pb-2">
-                          <p>{getDueDescription(due)}</p>
+                          <p>
+                            {due.type === 'late' ? "Late return fee" : 
+                             due.type === 'damage' ? "Book damage fee" : 
+                             "Annual membership renewal"}
+                          </p>
                           <p className="text-sm text-muted-foreground mt-1">
                             Due by: {new Date(due.dueDate).toLocaleDateString()}
                           </p>
@@ -225,7 +244,27 @@ export default function MemberDues() {
                         <CardFooter>
                           <Button 
                             className="w-full" 
-                            onClick={() => handlePayDue(due.id)}
+                            onClick={async () => {
+                              try {
+                                await dueService.updateDue(due.id, { status: 'paid' });
+                                
+                                setDues(dues.map(d => 
+                                  d.id === due.id ? { ...d, status: 'paid' as const } : d
+                                ));
+                                
+                                toast({
+                                  title: "Payment successful",
+                                  description: "Your payment has been processed successfully.",
+                                });
+                              } catch (error) {
+                                console.error("Error processing payment:", error);
+                                toast({
+                                  variant: "destructive",
+                                  title: "Error",
+                                  description: "Failed to process payment. Please try again.",
+                                });
+                              }
+                            }}
                           >
                             Pay Now
                           </Button>
@@ -245,7 +284,7 @@ export default function MemberDues() {
               </div>
             ) : (
               <>
-                {paidDues.length === 0 ? (
+                {dues.filter(due => due.status === 'paid' || due.status === 'waived').length === 0 ? (
                   <div className="text-center py-12">
                     <CreditCard className="mx-auto h-12 w-12 text-muted-foreground" />
                     <h3 className="mt-4 text-lg font-medium">No payment history</h3>
@@ -255,19 +294,29 @@ export default function MemberDues() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {paidDues.map((due) => (
+                    {dues.filter(due => due.status === 'paid' || due.status === 'waived').map((due) => (
                       <Card key={due.id}>
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-start">
                             <CardTitle className="text-lg">${due.amount.toFixed(2)}</CardTitle>
-                            {getDueTypeBadge(due.type)}
+                            {due.type === 'late' ? (
+                              <Badge variant="outline" className="bg-yellow-500 text-white">Late Fee</Badge>
+                            ) : due.type === 'damage' ? (
+                              <Badge variant="outline" className="bg-red-500 text-white">Damage Fee</Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-blue-500 text-white">Membership</Badge>
+                            )}
                           </div>
                           <CardDescription>
-                            {due.bookId?.title && `Book: ${due.bookId.title}`}
+                            {due.bookTitle && `Book: ${due.bookTitle}`}
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <p>{getDueDescription(due)}</p>
+                          <p>
+                            {due.type === 'late' ? "Late return fee" : 
+                             due.type === 'damage' ? "Book damage fee" : 
+                             "Annual membership renewal"}
+                          </p>
                           <p className="text-sm text-muted-foreground mt-1">
                             Paid on: {due.returnDate ? new Date(due.returnDate).toLocaleDateString() : new Date().toLocaleDateString()}
                           </p>
