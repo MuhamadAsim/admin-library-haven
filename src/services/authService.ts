@@ -9,16 +9,24 @@ export interface User {
 
 export const authService = {
   login: async (email: string, password: string): Promise<{ user: User; token: string }> => {
-    const response = await api.post('/auth/login', { email, password });
-    const { user, token } = response.data;
-    
-    // Store auth data in localStorage
-    localStorage.setItem('authToken', token);
-    localStorage.setItem('userEmail', user.email);
-    localStorage.setItem('userRole', user.role);
-    localStorage.setItem('userId', user.id);
-    
-    return { user, token };
+    try {
+      console.log('Login API call:', email);
+      const response = await api.post('/auth/login', { email, password });
+      const { user, token } = response.data;
+      
+      console.log('Login response successful, user:', user);
+      
+      // Store auth data in localStorage
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('userEmail', user.email);
+      localStorage.setItem('userRole', user.role);
+      localStorage.setItem('userId', user.id);
+      
+      return { user, token };
+    } catch (error) {
+      console.error('Login API error:', error);
+      throw error; // Re-throw to be handled by the component
+    }
   },
 
   logout: (): void => {

@@ -14,15 +14,20 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage("");
 
     try {
+      console.log(`Attempting login with: ${email}`);
       const { user } = await authService.login(email, password);
+      
+      console.log(`Login successful as: ${user.email}, role: ${user.role}`);
       
       if (user.role === 'admin') {
         toast({
@@ -38,14 +43,25 @@ export default function Login() {
         navigate("/member/dashboard");
       }
     } catch (error: any) {
+      console.error("Login error:", error);
+      
+      const errorMsg = error.response?.data?.msg || "Invalid credentials. Please try again.";
+      setErrorMessage(errorMsg);
+      
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: error.response?.data?.msg || "Invalid credentials. Please try again.",
+        description: errorMsg,
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Auto-fill admin credentials for easy access (for demo purposes)
+  const fillAdminCredentials = () => {
+    setEmail("admin@gmail.com");
+    setPassword("admin123");
   };
 
   return (
@@ -90,8 +106,14 @@ export default function Login() {
                   required
                 />
               </div>
+              
+              {errorMessage && (
+                <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">
+                  {errorMessage}
+                </div>
+              )}
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex-col space-y-2">
               <Button 
                 type="submit" 
                 className="w-full" 
@@ -104,6 +126,15 @@ export default function Login() {
                     <LogIn className="mr-2 h-4 w-4" /> Sign In
                   </>
                 )}
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={fillAdminCredentials}
+              >
+                <KeyRound className="mr-2 h-4 w-4" /> Use Admin Login
               </Button>
             </CardFooter>
           </form>

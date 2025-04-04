@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
@@ -23,20 +22,24 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
+    console.log(`Login attempt for email: ${email}`);
     const user = await User.findOne({ email });
     
     if (!user) {
+      console.log(`User not found: ${email}`);
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
     
     const isMatch = await user.comparePassword(password);
     
     if (!isMatch) {
+      console.log(`Password mismatch for user: ${email}`);
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
     
     // Create and return JWT token
     const token = generateToken(user);
+    console.log(`Login successful for: ${email}, role: ${user.role}`);
     
     res.json({
       token,
@@ -47,7 +50,7 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(err.message);
+    console.error(`Login error: ${err.message}`);
     res.status(500).send('Server Error');
   }
 });
@@ -123,6 +126,8 @@ const seedDefaultAdmin = async () => {
       
       await admin.save();
       console.log('Default admin account created successfully');
+    } else {
+      console.log('Default admin account already exists');
     }
   } catch (error) {
     console.error('Error seeding default admin:', error);
