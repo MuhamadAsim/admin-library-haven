@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { LogIn, KeyRound } from "lucide-react";
+import { LogIn, KeyRound, Loader } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { authService } from "@/services/authService";
 
@@ -24,7 +24,7 @@ export default function Login() {
     setErrorMessage("");
 
     try {
-      console.log(`Attempting login with: ${email}`);
+      console.log(`Attempting login with email: ${email}`);
       const { user } = await authService.login(email, password);
       
       console.log(`Login successful as: ${user.email}, role: ${user.role}`);
@@ -58,7 +58,7 @@ export default function Login() {
     }
   };
 
-  // Auto-fill admin credentials for easy access (for demo purposes)
+  // Auto-fill admin credentials for easy access
   const fillAdminCredentials = () => {
     setEmail("admin@gmail.com");
     setPassword("admin123");
@@ -94,9 +94,6 @@ export default function Login() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <a href="#" className="text-sm text-primary hover:underline">
-                    Forgot password?
-                  </a>
                 </div>
                 <Input 
                   id="password" 
@@ -120,7 +117,7 @@ export default function Login() {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  "Signing in..."
+                  <><Loader className="mr-2 h-4 w-4 animate-spin" /> Signing in...</>
                 ) : (
                   <>
                     <LogIn className="mr-2 h-4 w-4" /> Sign In

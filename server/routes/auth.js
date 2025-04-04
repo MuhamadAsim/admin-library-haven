@@ -1,3 +1,4 @@
+
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
@@ -29,6 +30,9 @@ router.post('/login', async (req, res) => {
       console.log(`User not found: ${email}`);
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
+    
+    console.log(`User found: ${email}, role: ${user.role}`);
+    console.log(`Attempting password verification...`);
     
     const isMatch = await user.comparePassword(password);
     
@@ -115,12 +119,11 @@ const seedDefaultAdmin = async () => {
     
     if (!adminExists) {
       console.log('Creating default admin account...');
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('admin123', salt);
       
+      // Create a new admin user with plaintext password - it will be hashed by the pre-save hook
       const admin = new User({
         email: 'admin@gmail.com',
-        password: hashedPassword,
+        password: 'admin123',
         role: 'admin'
       });
       
@@ -128,6 +131,10 @@ const seedDefaultAdmin = async () => {
       console.log('Default admin account created successfully');
     } else {
       console.log('Default admin account already exists');
+      // Reset admin password for testing
+      adminExists.password = 'admin123';
+      await adminExists.save();
+      console.log('Default admin password reset for testing');
     }
   } catch (error) {
     console.error('Error seeding default admin:', error);

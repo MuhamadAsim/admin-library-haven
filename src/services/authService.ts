@@ -23,7 +23,7 @@ export const authService = {
       localStorage.setItem('userId', user.id);
       
       return { user, token };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login API error:', error);
       throw error; // Re-throw to be handled by the component
     }
