@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MainLayout from "../components/Layout/MainLayout";
 import { DataTable, Column } from "@/components/ui/DataTable";
 import { BookForm } from "@/components/Books/BookForm";
@@ -21,20 +20,38 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, BookOpen, Info } from "lucide-react";
-import { Book, books as initialBooks } from "@/lib/data";
+import { PlusCircle, BookOpen } from "lucide-react";
+import { Book } from "@/lib/data";
+import { getBooks, deleteBook } from "@/services/bookService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const Books = () => {
-  const [books, setBooks] = useState<Book[]>(initialBooks);
+  const [books, setBooks] = useState<Book[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Define table columns
+  useEffect(() => {
+    fetchBooks();
+  }, []);
+
+  const fetchBooks = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getBooks();
+      setBooks(data);
+    } catch (error) {
+      console.error("Error fetching books:", error);
+      toast.error("Failed to load books");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const columns: Column<Book>[] = [
     {
       header: "Title",
@@ -103,24 +120,33 @@ const Books = () => {
     },
   ];
 
-  // Handle form submission
   const handleSaveBook = (book: Book) => {
     if (isEditDialogOpen) {
-      // Update existing book
       setBooks(books.map((b) => (b.id === book.id ? book : b)));
+      toast.success("Book updated successfully");
     } else {
-      // Add new book
       setBooks([...books, book]);
+      toast.success("Book added successfully");
     }
+    
+    setIsAddDialogOpen(false);
+    setIsEditDialogOpen(false);
+    setSelectedBook(null);
   };
 
-  // Handle book deletion
-  const handleDeleteBook = () => {
+  const handleDeleteBook = async () => {
     if (selectedBook) {
-      setBooks(books.filter((b) => b.id !== selectedBook.id));
-      toast.success("Book deleted successfully");
-      setIsDeleteDialogOpen(false);
-      setSelectedBook(null);
+      try {
+        await deleteBook(selectedBook.id);
+        setBooks(books.filter((b) => b.id !== selectedBook.id));
+        toast.success("Book deleted successfully");
+      } catch (error) {
+        console.error("Error deleting book:", error);
+        toast.error("Failed to delete book");
+      } finally {
+        setIsDeleteDialogOpen(false);
+        setSelectedBook(null);
+      }
     }
   };
 
@@ -140,7 +166,6 @@ const Books = () => {
           </Button>
         </div>
 
-        {/* Books Table */}
         <DataTable
           data={books}
           columns={columns}
@@ -156,9 +181,9 @@ const Books = () => {
             setSelectedBook(book);
             setIsViewDialogOpen(true);
           }}
+          isLoading={isLoading}
         />
 
-        {/* Add/Edit Book Form */}
         <BookForm
           isOpen={isAddDialogOpen || isEditDialogOpen}
           onClose={() => {
@@ -171,7 +196,6 @@ const Books = () => {
           mode={isEditDialogOpen ? "edit" : "create"}
         />
 
-        {/* View Book Details */}
         <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
           <DialogContent className="glass-panel max-w-md mx-auto">
             <DialogHeader>
@@ -261,7 +285,6 @@ const Books = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Confirmation Dialog */}
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent className="glass-panel">
             <AlertDialogHeader>

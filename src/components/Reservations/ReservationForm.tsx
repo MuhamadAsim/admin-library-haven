@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Reservation, Book, Member, members, books } from "@/lib/data";
+import { Reservation, Book, Member } from "@/lib/data";
+import { getMembers } from "@/services/memberService";
+import { getBooks } from "@/services/bookService";
 
 interface ReservationFormProps {
   isOpen: boolean;
@@ -33,17 +34,28 @@ export function ReservationForm({ isOpen, onClose, onSave, initialData, mode }: 
 
   // Load available members and books
   useEffect(() => {
-    // For members, only show active members
-    setAvailableMembers(members.filter(member => member.status === 'active'));
+    const fetchData = async () => {
+      try {
+        // For members, only show active members
+        const members = await getMembers();
+        setAvailableMembers(members.filter(member => member.status === 'active'));
+        
+        // For books, filter based on mode
+        const books = await getBooks();
+        if (mode === 'create') {
+          // Only show books with no available copies (need reservation)
+          setAvailableBooks(books.filter(book => book.availableCopies === 0));
+        } else {
+          // Show all books when editing
+          setAvailableBooks(books);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load required data. Please try again.");
+      }
+    };
     
-    // For books, filter based on mode
-    if (mode === 'create') {
-      // Only show books with no available copies (need reservation)
-      setAvailableBooks(books.filter(book => book.availableCopies === 0));
-    } else {
-      // Show all books when editing
-      setAvailableBooks(books);
-    }
+    fetchData();
   }, [mode]);
 
   const handleChange = (field: keyof Reservation, value: string | boolean) => {

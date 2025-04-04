@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Search, BookOpen } from "lucide-react";
 import MemberLayout from "@/components/Layout/MemberLayout";
 import { useToast } from "@/hooks/use-toast";
+import { Book } from "@/lib/data";
+import { getBooks } from "@/services/bookService";
 
-interface Book {
+interface BookDisplay {
   id: string;
   title: string;
   author: string;
@@ -18,10 +19,41 @@ interface Book {
 }
 
 export default function MemberBooks() {
-  const [books, setBooks] = useState<Book[]>([]);
+  const [books, setBooks] = useState<BookDisplay[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        setIsLoading(true);
+        const fetchedBooks = await getBooks();
+        
+        const displayBooks: BookDisplay[] = fetchedBooks.map(book => ({
+          id: book.id,
+          title: book.title,
+          author: book.author,
+          genre: book.genre,
+          available: book.status === 'available' && book.availableCopies > 0,
+          cover: book.coverImage
+        }));
+        
+        setBooks(displayBooks);
+      } catch (error) {
+        console.error("Error fetching books:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load books. Please try again later.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchBooks();
+  }, [toast]);
 
   const filteredBooks = books.filter(book =>
     book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -29,14 +61,14 @@ export default function MemberBooks() {
     book.genre.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleBorrow = (book: Book) => {
+  const handleBorrow = (book: BookDisplay) => {
     toast({
       title: "Book Borrowed",
       description: `You have successfully borrowed "${book.title}"`,
     });
   };
 
-  const handleReserve = (book: Book) => {
+  const handleReserve = (book: BookDisplay) => {
     toast({
       title: "Book Reserved",
       description: `You have successfully reserved "${book.title}". We'll notify you when it's available.`,

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
-import { Due, Book, Member, members, books } from "@/lib/data";
+import { Due, Book, Member } from "@/lib/data";
+import { getMembers } from "@/services/memberService";
+import { getBooks } from "@/services/bookService";
 
 interface DueFormProps {
   isOpen: boolean;
@@ -34,19 +35,25 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
   const [availableMembers, setAvailableMembers] = useState<Member[]>([]);
   const [availableBooks, setAvailableBooks] = useState<Book[]>([]);
 
-  // Load available members and books
   useEffect(() => {
-    // For members, only show active members
-    setAvailableMembers(members.filter(member => member.status === 'active'));
+    const fetchData = async () => {
+      try {
+        const members = await getMembers();
+        setAvailableMembers(members.filter(member => member.status === 'active'));
+        
+        const books = await getBooks();
+        if (mode === 'create') {
+          setAvailableBooks(books.filter(book => book.status === 'available'));
+        } else {
+          setAvailableBooks(books);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load required data. Please try again.");
+      }
+    };
     
-    // For books, filter based on mode
-    if (mode === 'create') {
-      // Only show available books for new issues
-      setAvailableBooks(books.filter(book => book.status === 'available'));
-    } else {
-      // Show all books when editing
-      setAvailableBooks(books);
-    }
+    fetchData();
   }, [mode]);
 
   const handleChange = (field: keyof Due, value: string | number | null) => {
@@ -62,13 +69,10 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
     const due = new Date(dueDate);
     const returned = new Date(returnDate);
     
-    // If returned before or on due date, no fine
     if (returned <= due) return 0;
     
-    // Calculate days overdue
     const daysLate = Math.ceil((returned.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
     
-    // Calculate fine at $0.50 per day
     return daysLate * 0.5;
   };
 
@@ -84,7 +88,6 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form
     if (!formData.memberId) {
       toast.error("Please select a member");
       return;
@@ -105,11 +108,9 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
       return;
     }
     
-    // Save the due
     onSave(formData);
     onClose();
     
-    // Show success toast
     toast.success(
       mode === 'create' 
         ? "Book issued successfully" 
