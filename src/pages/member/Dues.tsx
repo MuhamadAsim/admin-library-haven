@@ -4,18 +4,23 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, CreditCard, Clock, CalendarCheck } from "lucide-react";
+import { DollarSign, CreditCard, Clock, CalendarCheck, Loader2 } from "lucide-react";
 import MemberLayout from "@/components/Layout/MemberLayout";
 import { useToast } from "@/hooks/use-toast";
+import { authService } from "@/services/authService";
+import * as dueService from '@/services/dueService';
 
 interface Due {
   id: string;
-  type: 'late' | 'damage' | 'membership';
   amount: number;
-  description: string;
+  bookId: {
+    title: string;
+  };
   dueDate: string;
-  status: 'pending' | 'paid';
-  bookTitle?: string;
+  issueDate: string;
+  returnDate: string | null;
+  status: 'pending' | 'paid' | 'waived';
+  type?: 'late' | 'damage' | 'membership';
 }
 
 export default function MemberDues() {
@@ -26,73 +31,93 @@ export default function MemberDues() {
   useEffect(() => {
     const fetchDues = async () => {
       try {
-        // In a real app, you would fetch from your API
-        // For demo, we'll use some sample data
-        const sampleDues: Due[] = [
-          {
-            id: "1",
-            type: 'late',
-            amount: 5.25,
-            description: "Late return fee",
-            bookTitle: "To Kill a Mockingbird",
-            dueDate: "2025-04-15",
-            status: 'pending',
-          },
-          {
-            id: "2",
-            type: 'membership',
-            amount: 25.00,
-            description: "Annual membership renewal",
-            dueDate: "2025-05-01",
-            status: 'pending',
-          },
-          {
-            id: "3",
-            type: 'damage',
-            amount: 10.50,
-            description: "Book damage fee",
-            bookTitle: "1984",
-            dueDate: "2025-03-30",
-            status: 'paid',
-          },
-        ];
+        setIsLoading(true);
+        const user = authService.getCurrentUser();
+        if (!user) return;
+
+        // In a real implementation, we'd get member ID from the user object
+        const data = await dueService.getDues();
         
-        setDues(sampleDues);
+        // Format the data to match our component's expected structure
+        const formattedDues = data.map((due: any) => ({
+          id: due._id,
+          amount: due.fineAmount,
+          bookId: {
+            title: due.bookId.title
+          },
+          dueDate: due.dueDate,
+          issueDate: due.issueDate,
+          returnDate: due.returnDate,
+          status: due.status,
+          type: due.returnDate ? 'late' : (due.fineAmount > 0 ? 'damage' : 'membership')
+        }));
+        
+        setDues(formattedDues);
       } catch (error) {
         console.error("Error fetching dues:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch dues. Please try again.",
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchDues();
-  }, []);
+  }, [toast]);
 
   const pendingDues = dues.filter(due => due.status === 'pending');
-  const paidDues = dues.filter(due => due.status === 'paid');
+  const paidDues = dues.filter(due => due.status === 'paid' || due.status === 'waived');
   
   const totalDue = pendingDues.reduce((sum, due) => sum + due.amount, 0);
 
-  const handlePayDue = (id: string) => {
-    // In a real app, this would call your API to process the payment
-    setDues(dues.map(due => 
-      due.id === id ? { ...due, status: 'paid' as const } : due
-    ));
-    
-    toast({
-      title: "Payment successful",
-      description: "Your payment has been processed successfully.",
-    });
+  const handlePayDue = async (id: string) => {
+    try {
+      await dueService.updateDue(id, { status: 'paid' });
+      
+      setDues(dues.map(due => 
+        due.id === id ? { ...due, status: 'paid' as const } : due
+      ));
+      
+      toast({
+        title: "Payment successful",
+        description: "Your payment has been processed successfully.",
+      });
+    } catch (error) {
+      console.error("Error processing payment:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to process payment. Please try again.",
+      });
+    }
   };
 
-  const handlePayAll = () => {
-    // In a real app, this would call your API to process all payments
-    setDues(dues.map(due => ({ ...due, status: 'paid' as const })));
-    
-    toast({
-      title: "All payments processed",
-      description: `You have successfully paid $${totalDue.toFixed(2)}.`,
-    });
+  const handlePayAll = async () => {
+    try {
+      // Update all pending dues to paid
+      for (const due of pendingDues) {
+        await dueService.updateDue(due.id, { status: 'paid' });
+      }
+      
+      setDues(dues.map(due => 
+        due.status === 'pending' ? { ...due, status: 'paid' as const } : due
+      ));
+      
+      toast({
+        title: "All payments processed",
+        description: `You have successfully paid $${totalDue.toFixed(2)}.`,
+      });
+    } catch (error) {
+      console.error("Error processing payments:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to process payments. Please try again.",
+      });
+    }
   };
 
   const getDueTypeIcon = (type: Due['type']) => {
@@ -103,6 +128,8 @@ export default function MemberDues() {
         return <DollarSign className="h-4 w-4" />;
       case 'membership':
         return <CalendarCheck className="h-4 w-4" />;
+      default:
+        return <DollarSign className="h-4 w-4" />;
     }
   };
 
@@ -114,7 +141,20 @@ export default function MemberDues() {
         return <Badge variant="outline" className="bg-red-500 text-white">Damage Fee</Badge>;
       case 'membership':
         return <Badge variant="outline" className="bg-blue-500 text-white">Membership</Badge>;
+      default:
+        return <Badge variant="outline" className="bg-blue-500 text-white">Fee</Badge>;
     }
+  };
+
+  const getDueDescription = (due: Due) => {
+    if (due.type === 'late') {
+      return "Late return fee";
+    } else if (due.type === 'damage') {
+      return "Book damage fee";
+    } else if (due.type === 'membership') {
+      return "Annual membership renewal";
+    }
+    return "Library fee";
   };
 
   return (
@@ -150,22 +190,8 @@ export default function MemberDues() {
           
           <TabsContent value="pending" className="mt-6">
             {isLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i} className="animate-pulse">
-                    <CardHeader className="pb-2">
-                      <div className="h-5 bg-muted rounded w-1/2 mb-2" />
-                      <div className="h-4 bg-muted rounded w-1/4" />
-                    </CardHeader>
-                    <CardContent className="pb-2">
-                      <div className="h-4 bg-muted rounded mb-2" />
-                      <div className="h-4 bg-muted rounded w-3/4" />
-                    </CardContent>
-                    <CardFooter>
-                      <div className="h-9 bg-muted rounded w-full" />
-                    </CardFooter>
-                  </Card>
-                ))}
+              <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : (
               <>
@@ -187,11 +213,11 @@ export default function MemberDues() {
                             {getDueTypeBadge(due.type)}
                           </div>
                           <CardDescription>
-                            {due.bookTitle && `Book: ${due.bookTitle}`}
+                            {due.bookId?.title && `Book: ${due.bookId.title}`}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="pb-2">
-                          <p>{due.description}</p>
+                          <p>{getDueDescription(due)}</p>
                           <p className="text-sm text-muted-foreground mt-1">
                             Due by: {new Date(due.dueDate).toLocaleDateString()}
                           </p>
@@ -214,19 +240,8 @@ export default function MemberDues() {
           
           <TabsContent value="paid" className="mt-6">
             {isLoading ? (
-              <div className="space-y-4">
-                {[1, 2].map((i) => (
-                  <Card key={i} className="animate-pulse">
-                    <CardHeader className="pb-2">
-                      <div className="h-5 bg-muted rounded w-1/2 mb-2" />
-                      <div className="h-4 bg-muted rounded w-1/4" />
-                    </CardHeader>
-                    <CardContent className="pb-2">
-                      <div className="h-4 bg-muted rounded mb-2" />
-                      <div className="h-4 bg-muted rounded w-3/4" />
-                    </CardContent>
-                  </Card>
-                ))}
+              <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : (
               <>
@@ -248,13 +263,13 @@ export default function MemberDues() {
                             {getDueTypeBadge(due.type)}
                           </div>
                           <CardDescription>
-                            {due.bookTitle && `Book: ${due.bookTitle}`}
+                            {due.bookId?.title && `Book: ${due.bookId.title}`}
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <p>{due.description}</p>
+                          <p>{getDueDescription(due)}</p>
                           <p className="text-sm text-muted-foreground mt-1">
-                            Paid on: {new Date().toLocaleDateString()}
+                            Paid on: {due.returnDate ? new Date(due.returnDate).toLocaleDateString() : new Date().toLocaleDateString()}
                           </p>
                         </CardContent>
                       </Card>

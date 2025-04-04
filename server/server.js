@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const { startNotificationService } = require('./services/notificationService');
 require('dotenv').config();
 
 const app = express();
@@ -16,6 +17,9 @@ const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/library_system');
     console.log('MongoDB Connected...');
+    
+    // Start notification service after DB connection
+    startNotificationService();
   } catch (err) {
     console.error(err.message);
     // Exit process with failure
@@ -31,6 +35,7 @@ app.use('/api/members', require('./routes/members'));
 app.use('/api/books', require('./routes/books'));
 app.use('/api/dues', require('./routes/dues'));
 app.use('/api/reservations', require('./routes/reservations'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

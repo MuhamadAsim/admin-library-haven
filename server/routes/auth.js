@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Member = require('../models/Member');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const auth = require('../middleware/auth');
 
 // Helper to generate JWT token
 const generateToken = (user) => {
@@ -54,7 +55,7 @@ router.post('/login', async (req, res) => {
 // @route   GET api/auth/user
 // @desc    Get user data
 // @access  Private
-router.get('/user', async (req, res) => {
+router.get('/user', auth, async (req, res) => {
   try {
     // Token verification middleware would attach user to req
     const user = await User.findById(req.user.id).select('-password');

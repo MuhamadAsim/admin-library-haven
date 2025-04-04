@@ -3,9 +3,10 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, BookOpen, CreditCard, Clock, Check, Trash2 } from "lucide-react";
+import { Bell, BookOpen, CreditCard, Clock, Check, Trash2, Loader2 } from "lucide-react";
 import MemberLayout from "@/components/Layout/MemberLayout";
 import { useToast } from "@/hooks/use-toast";
+import * as notificationService from '@/services/notificationService';
 
 interface Notification {
   id: string;
@@ -24,81 +25,81 @@ export default function MemberNotifications() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        // In a real app, you would fetch from your API
-        // For demo, we'll use some sample data
-        const sampleNotifications: Notification[] = [
-          {
-            id: "1",
-            type: 'reservation',
-            title: "Book Ready for Pickup",
-            message: "Your reserved book 'The Catcher in the Rye' is now available for pickup. Please collect it within 3 days.",
-            date: "2025-04-01T10:30:00",
-            read: false,
-          },
-          {
-            id: "2",
-            type: 'due',
-            title: "Payment Due Reminder",
-            message: "You have an upcoming payment of $25.00 for your annual membership renewal due by May 1st.",
-            date: "2025-03-28T15:45:00",
-            read: true,
-          },
-          {
-            id: "3",
-            type: 'overdue',
-            title: "Book Overdue Notice",
-            message: "Your book '1984' was due on March 25th. Please return it as soon as possible to avoid additional fees.",
-            date: "2025-03-26T09:15:00",
-            read: false,
-          },
-          {
-            id: "4",
-            type: 'system',
-            title: "Library Holiday Hours",
-            message: "Please note that the library will have modified hours during the upcoming holiday. We will be closed on April 15th.",
-            date: "2025-03-20T11:00:00",
-            read: true,
-          },
-        ];
-        
-        setNotifications(sampleNotifications);
+        setIsLoading(true);
+        const data = await notificationService.getNotifications();
+        setNotifications(data);
       } catch (error) {
         console.error("Error fetching notifications:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch notifications. Please try again.",
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchNotifications();
-  }, []);
+  }, [toast]);
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications(notifications.map(notification => 
-      notification.id === id ? { ...notification, read: true } : notification
-    ));
-    
-    toast({
-      title: "Notification marked as read",
-      description: "The notification has been marked as read.",
-    });
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await notificationService.markNotificationAsRead(id);
+      setNotifications(notifications.map(notification => 
+        notification.id === id ? { ...notification, read: true } : notification
+      ));
+      
+      toast({
+        title: "Notification marked as read",
+        description: "The notification has been marked as read.",
+      });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to mark notification as read. Please try again.",
+      });
+    }
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map(notification => ({ ...notification, read: true })));
-    
-    toast({
-      title: "All notifications marked as read",
-      description: "All notifications have been marked as read.",
-    });
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationService.markAllNotificationsAsRead();
+      setNotifications(notifications.map(notification => ({ ...notification, read: true })));
+      
+      toast({
+        title: "All notifications marked as read",
+        description: "All notifications have been marked as read.",
+      });
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to mark all notifications as read. Please try again.",
+      });
+    }
   };
 
-  const handleDeleteNotification = (id: string) => {
-    setNotifications(notifications.filter(notification => notification.id !== id));
-    
-    toast({
-      title: "Notification deleted",
-      description: "The notification has been deleted successfully.",
-    });
+  const handleDeleteNotification = async (id: string) => {
+    try {
+      await notificationService.deleteNotification(id);
+      setNotifications(notifications.filter(notification => notification.id !== id));
+      
+      toast({
+        title: "Notification deleted",
+        description: "The notification has been deleted successfully.",
+      });
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete notification. Please try again.",
+      });
+    }
   };
 
   const getNotificationIcon = (type: Notification['type']) => {
@@ -148,24 +149,8 @@ export default function MemberNotifications() {
         </div>
         
         {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader className="pb-2">
-                  <div className="flex gap-4">
-                    <div className="h-10 w-10 rounded-full bg-muted" />
-                    <div className="flex-1">
-                      <div className="h-5 bg-muted rounded w-1/2 mb-2" />
-                      <div className="h-4 bg-muted rounded w-1/4" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-4 bg-muted rounded mb-2" />
-                  <div className="h-4 bg-muted rounded w-3/4" />
-                </CardContent>
-              </Card>
-            ))}
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
           <>

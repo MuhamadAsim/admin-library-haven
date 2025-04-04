@@ -1,7 +1,7 @@
-
 const express = require('express');
 const router = express.Router();
 const Member = require('../models/Member');
+const auth = require('../middleware/auth');
 
 // @route   GET api/members
 // @desc    Get all members
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
 // @route   GET api/members/:id
 // @desc    Get member by ID
 // @access  Public
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
     const member = await Member.findById(req.params.id);
     
@@ -71,7 +71,7 @@ router.post('/', async (req, res) => {
 // @route   PUT api/members/:id
 // @desc    Update a member
 // @access  Public
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   const { name, email, phone, address, membershipDate, status } = req.body;
   
   // Build member object
@@ -117,7 +117,7 @@ router.put('/:id', async (req, res) => {
 // @route   DELETE api/members/:id
 // @desc    Delete a member
 // @access  Public
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const member = await Member.findById(req.params.id);
     

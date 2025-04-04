@@ -6,15 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { BookMarked, Loader2 } from "lucide-react";
 import MemberLayout from "@/components/Layout/MemberLayout";
 import { useToast } from "@/hooks/use-toast";
+import { authService } from "@/services/authService";
+import * as reservationService from '@/services/reservationService';
 
 interface Reservation {
   id: string;
-  bookId: string;
-  bookTitle: string;
-  bookAuthor: string;
-  status: 'pending' | 'ready' | 'cancelled';
+  bookId: {
+    id: string;
+    title: string;
+    author: string;
+  };
+  status: 'pending' | 'fulfilled' | 'cancelled';
   reservationDate: string;
-  expirationDate: string;
 }
 
 export default function MemberReservations() {
@@ -25,72 +28,82 @@ export default function MemberReservations() {
   useEffect(() => {
     const fetchReservations = async () => {
       try {
-        // In a real app, you would fetch from your API
-        // For demo, we'll use some sample data
-        const sampleReservations: Reservation[] = [
-          {
-            id: "1",
-            bookId: "101",
-            bookTitle: "To Kill a Mockingbird",
-            bookAuthor: "Harper Lee",
-            status: 'pending',
-            reservationDate: "2025-03-20",
-            expirationDate: "2025-04-20",
-          },
-          {
-            id: "2",
-            bookId: "102",
-            bookTitle: "The Catcher in the Rye",
-            bookAuthor: "J.D. Salinger",
-            status: 'ready',
-            reservationDate: "2025-03-25",
-            expirationDate: "2025-04-25",
-          },
-          {
-            id: "3",
-            bookId: "103",
-            bookTitle: "The Great Gatsby",
-            bookAuthor: "F. Scott Fitzgerald",
-            status: 'cancelled',
-            reservationDate: "2025-03-10",
-            expirationDate: "2025-04-10",
-          },
-        ];
+        setIsLoading(true);
+        const user = authService.getCurrentUser();
+        if (!user) return;
+
+        // In a real implementation, we'd get member ID from the user object
+        // For now, we'll get all reservations for the current user's associated member
+        const data = await reservationService.getReservations();
         
-        setReservations(sampleReservations);
+        // Format the data to match our component's expected structure
+        const formattedReservations = data.map((reservation: any) => ({
+          id: reservation._id,
+          bookId: {
+            id: reservation.bookId._id,
+            title: reservation.bookId.title,
+            author: reservation.bookId.author
+          },
+          status: reservation.status,
+          reservationDate: reservation.reservationDate
+        }));
+        
+        setReservations(formattedReservations);
       } catch (error) {
         console.error("Error fetching reservations:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch reservations. Please try again.",
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchReservations();
-  }, []);
+  }, [toast]);
 
-  const handleCancelReservation = (id: string) => {
-    // In a real app, this would call your API to cancel the reservation
-    setReservations(reservations.map(res => 
-      res.id === id ? { ...res, status: 'cancelled' as const } : res
-    ));
-    
-    toast({
-      title: "Reservation cancelled",
-      description: "Your book reservation has been cancelled successfully.",
-    });
+  const handleCancelReservation = async (id: string) => {
+    try {
+      await reservationService.updateReservation(id, { status: 'cancelled' });
+      
+      setReservations(reservations.map(res => 
+        res.id === id ? { ...res, status: 'cancelled' as const } : res
+      ));
+      
+      toast({
+        title: "Reservation cancelled",
+        description: "Your book reservation has been cancelled successfully.",
+      });
+    } catch (error) {
+      console.error("Error cancelling reservation:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to cancel reservation. Please try again.",
+      });
+    }
   };
 
   const getStatusBadge = (status: Reservation['status']) => {
     switch (status) {
       case 'pending':
         return <Badge variant="outline" className="bg-yellow-500 text-white">Pending</Badge>;
-      case 'ready':
+      case 'fulfilled':
         return <Badge variant="outline" className="bg-green-500 text-white">Ready for pickup</Badge>;
       case 'cancelled':
         return <Badge variant="outline" className="bg-red-500 text-white">Cancelled</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
+  };
+
+  // Calculate expiration date (1 month from reservation date)
+  const getExpirationDate = (reservationDate: string) => {
+    const date = new Date(reservationDate);
+    date.setMonth(date.getMonth() + 1);
+    return date;
   };
 
   return (
@@ -117,8 +130,8 @@ export default function MemberReservations() {
                 {reservations.map((reservation) => (
                   <Card key={reservation.id}>
                     <CardHeader>
-                      <CardTitle className="line-clamp-1">{reservation.bookTitle}</CardTitle>
-                      <CardDescription>by {reservation.bookAuthor}</CardDescription>
+                      <CardTitle className="line-clamp-1">{reservation.bookId.title}</CardTitle>
+                      <CardDescription>by {reservation.bookId.author}</CardDescription>
                       <div className="mt-2">
                         {getStatusBadge(reservation.status)}
                       </div>
@@ -131,7 +144,7 @@ export default function MemberReservations() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Expires on:</span>
-                          <span>{new Date(reservation.expirationDate).toLocaleDateString()}</span>
+                          <span>{getExpirationDate(reservation.reservationDate).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -145,7 +158,7 @@ export default function MemberReservations() {
                           Cancel Reservation
                         </Button>
                       )}
-                      {reservation.status === 'ready' && (
+                      {reservation.status === 'fulfilled' && (
                         <Button className="w-full">
                           Confirm Pickup
                         </Button>
