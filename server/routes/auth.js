@@ -112,36 +112,5 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Seed the default admin account
-const seedDefaultAdmin = async () => {
-  try {
-    const adminExists = await User.findOne({ email: 'admin@gmail.com' });
-    
-    if (!adminExists) {
-      console.log('Creating default admin account...');
-      
-      // Create admin with plaintext password
-      const admin = new User({
-        email: 'admin@gmail.com',
-        password: 'admin123',
-        role: 'admin'
-      });
-      
-      await admin.save();
-      console.log('Default admin account created successfully');
-    } else {
-      console.log('Default admin account already exists');
-      // Reset admin password for testing
-      adminExists.password = 'admin123';
-      await adminExists.save();
-      console.log('Default admin password reset for testing');
-    }
-  } catch (error) {
-    console.error('Error seeding default admin:', error);
-  }
-};
-
-// Call this function when the server starts
-seedDefaultAdmin();
 
 module.exports = router;

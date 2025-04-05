@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { LogIn, KeyRound, Loader } from "lucide-react";
+import { LogIn, Loader, Eye, EyeOff } from "lucide-react"; // Added Eye icons
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { authService } from "@/services/authService";
 
@@ -15,6 +14,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false); // Password visibility state
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -58,12 +58,6 @@ export default function Login() {
     }
   };
 
-  // Auto-fill admin credentials for easy access
-  const fillAdminCredentials = () => {
-    setEmail("admin@gmail.com");
-    setPassword("admin123");
-  };
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
       <div className="absolute top-4 right-4">
@@ -91,17 +85,27 @@ export default function Login() {
                   required
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 relative">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
                 </div>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <Input 
+                    id="password" 
+                    type={passwordVisible ? "text" : "password"} // Toggle between text and password
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  {/* Password visibility toggle button inside the input field */}
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500"
+                    onClick={() => setPasswordVisible(!passwordVisible)}
+                  >
+                    {passwordVisible ? <EyeOff /> : <Eye />}
+                  </button>
+                </div>
               </div>
               
               {errorMessage && (
@@ -119,29 +123,12 @@ export default function Login() {
                 {isLoading ? (
                   <><Loader className="mr-2 h-4 w-4 animate-spin" /> Signing in...</>
                 ) : (
-                  <>
-                    <LogIn className="mr-2 h-4 w-4" /> Sign In
-                  </>
+                  <><LogIn className="mr-2 h-4 w-4" /> Sign In</>
                 )}
-              </Button>
-              
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={fillAdminCredentials}
-              >
-                <KeyRound className="mr-2 h-4 w-4" /> Use Admin Login
               </Button>
             </CardFooter>
           </form>
         </Card>
-
-        <div className="mt-4 text-center text-sm text-muted-foreground">
-          <p>
-            Default admin login: admin@gmail.com / admin123
-          </p>
-        </div>
       </div>
     </div>
   );

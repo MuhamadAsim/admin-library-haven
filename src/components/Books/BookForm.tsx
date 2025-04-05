@@ -105,18 +105,18 @@ export function BookForm({ isOpen, onClose, onSave, initialData, mode }: BookFor
         : "Book updated successfully"
     );
   };
-
+//
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="glass-panel max-w-md mx-auto">
+      <DialogContent className="glass-panel max-w-md mx-auto my-1 py-2">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
             {mode === 'create' ? 'Add New Book' : 'Edit Book'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="grid grid-cols-1 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-2 py-2 max-h-[500px] overflow-y-auto">
+          <div className="grid grid-cols-1 gap-3">
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
               <Input
@@ -219,7 +219,7 @@ export function BookForm({ isOpen, onClose, onSave, initialData, mode }: BookFor
             </div>
           </div>
 
-          <DialogFooter className="pt-4">
+          <DialogFooter className="px-2 py-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
