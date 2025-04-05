@@ -3,9 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Book } from "@/lib/data";
+import { addBook, updateBook } from "@/services/bookService";
 
 interface BookFormProps {
   isOpen: boolean;
@@ -31,6 +31,8 @@ export function BookForm({ isOpen, onClose, onSave, initialData, mode }: BookFor
       coverImage: ""
     }
   );
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -60,65 +62,103 @@ export function BookForm({ isOpen, onClose, onSave, initialData, mode }: BookFor
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     // Validate form
     if (!formData.title) {
       toast.error("Title is required");
+      setIsSubmitting(false);
       return;
     }
 
     if (!formData.author) {
       toast.error("Author is required");
+      setIsSubmitting(false);
       return;
     }
 
     if (!formData.isbn) {
       toast.error("ISBN is required");
+      setIsSubmitting(false);
       return;
     }
 
     if (!formData.publishedYear) {
       toast.error("Published Year is required");
+      setIsSubmitting(false);
       return;
     }
 
     if (!formData.genre) {
       toast.error("Genre is required");
+      setIsSubmitting(false);
       return;
     }
 
     if (!formData.description) {
       toast.error("Description is required");
+      setIsSubmitting(false);
       return;
     }
 
     if (!formData.totalCopies || formData.totalCopies <= 0) {
       toast.error("Total Copies must be greater than 0");
+      setIsSubmitting(false);
       return;
     }
 
     if (!formData.availableCopies || formData.availableCopies < 0) {
       toast.error("Available Copies cannot be negative");
+      setIsSubmitting(false);
       return;
     }
 
     if (formData.availableCopies > formData.totalCopies) {
       toast.error("Available Copies cannot be greater than Total Copies");
+      setIsSubmitting(false);
       return;
     }
 
-    // Save the book
-    onSave(formData);
-    onClose();
+    try {
+      let savedBook;
+      
+      if (mode === 'create') {
+        // For create mode, use addBook service
+        const { id, ...bookWithoutId } = formData; // Remove client-side id
+        savedBook = await addBook(bookWithoutId);
+      } else {
+        // For edit mode, use updateBook service
+        const bookId = initialData?._id || initialData?.id;
+        if (!bookId) {
+          throw new Error("Book ID is missing for update");
+        }
+        savedBook = await updateBook(bookId, formData);
+      }
+      
+      // Map MongoDB _id to id if needed
+      const finalBook = {
+        ...savedBook,
+        id: savedBook._id || savedBook.id
+      };
+      
+      onSave(finalBook);
+      onClose();
 
-    // Show success toast
-    toast.success(
-      mode === 'create'
-        ? "Book added successfully"
-        : "Book updated successfully"
-    );
+      // Show success toast
+      toast.success(
+        mode === 'create'
+          ? "Book added successfully"
+          : "Book updated successfully"
+      );
+      
+    } catch (error) {
+      console.error("Error saving book:", error);
+      toast.error(`Failed to ${mode === 'create' ? 'add' : 'update'} book`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

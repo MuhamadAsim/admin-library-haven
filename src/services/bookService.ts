@@ -16,31 +16,47 @@ export const getBookById = async (id: string): Promise<Book> => {
 
 // Add new book
 export const addBook = async (book: Omit<Book, 'id'>): Promise<Book> => {
-  const response = await api.post('/books', {
-    ...book,
-    // MongoDB will generate the ID, so we don't need to send it
-    // but ensure all required fields are sent
-    title: book.title,
-    author: book.author,
-    isbn: book.isbn,
-    publishedYear: book.publishedYear,
-    genre: book.genre,
-    description: book.description,
-    totalCopies: book.totalCopies || 1,
-    availableCopies: book.availableCopies || book.totalCopies || 1,
-    status: book.status || 'available',
-    coverImage: book.coverImage || 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=2070&auto=format&fit=crop'
-  });
-  return response.data;
+  try {
+    console.log("Sending book data:", book);
+    const response = await api.post('/books', {
+      title: book.title,
+      author: book.author,
+      isbn: book.isbn,
+      publishedYear: book.publishedYear,
+      genre: book.genre,
+      description: book.description,
+      totalCopies: book.totalCopies || 1,
+      availableCopies: book.availableCopies || book.totalCopies || 1,
+      status: book.status || 'available',
+      coverImage: book.coverImage || 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=2070&auto=format&fit=crop'
+    });
+    console.log("Book added response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error adding book:", error);
+    throw error;
+  }
 };
 
 // Update book
 export const updateBook = async (id: string, book: Partial<Book>): Promise<Book> => {
-  const response = await api.put(`/books/${id}`, book);
-  return response.data;
+  try {
+    console.log("Updating book:", id, book);
+    const response = await api.put(`/books/${id}`, book);
+    console.log("Book update response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating book:", error);
+    throw error;
+  }
 };
 
 // Delete book
 export const deleteBook = async (id: string): Promise<void> => {
-  await api.delete(`/books/${id}`);
+  try {
+    await api.delete(`/books/${id}`);
+  } catch (error) {
+    console.error("Error deleting book:", error);
+    throw error;
+  }
 };

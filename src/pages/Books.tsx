@@ -22,7 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, BookOpen } from "lucide-react";
 import { Book } from "@/lib/data";
-import { getBooks, deleteBook } from "@/services/bookService";
+import { getBooks, addBook, updateBook, deleteBook } from "@/services/bookService";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -43,12 +43,54 @@ const Books = () => {
     try {
       setIsLoading(true);
       const data = await getBooks();
-      setBooks(data);
+      const formattedBooks = data.map((book: any) => ({
+        ...book,
+        id: book._id || book.id
+      }));
+      setBooks(formattedBooks);
     } catch (error) {
       console.error("Error fetching books:", error);
       toast.error("Failed to load books");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSaveBook = async (book: Book) => {
+    try {
+      if (isEditDialogOpen && selectedBook) {
+        const bookId = selectedBook._id || selectedBook.id;
+        const updatedBook = await updateBook(bookId, book);
+        setBooks(books.map((b) => (b.id === bookId ? { ...updatedBook, id: updatedBook._id || updatedBook.id } : b)));
+        toast.success("Book updated successfully");
+      } else {
+        await fetchBooks();
+        toast.success("Book added successfully");
+      }
+    } catch (error) {
+      console.error("Error saving book:", error);
+      toast.error(`Failed to ${isEditDialogOpen ? 'update' : 'add'} book`);
+    } finally {
+      setIsAddDialogOpen(false);
+      setIsEditDialogOpen(false);
+      setSelectedBook(null);
+    }
+  };
+
+  const handleDeleteBook = async () => {
+    if (selectedBook) {
+      try {
+        const bookId = selectedBook._id || selectedBook.id;
+        await deleteBook(bookId);
+        setBooks(books.filter((b) => b.id !== bookId));
+        toast.success("Book deleted successfully");
+      } catch (error) {
+        console.error("Error deleting book:", error);
+        toast.error("Failed to delete book");
+      } finally {
+        setIsDeleteDialogOpen(false);
+        setSelectedBook(null);
+      }
     }
   };
 
@@ -119,36 +161,6 @@ const Books = () => {
       },
     },
   ];
-
-  const handleSaveBook = (book: Book) => {
-    if (isEditDialogOpen) {
-      setBooks(books.map((b) => (b.id === book.id ? book : b)));
-      toast.success("Book updated successfully");
-    } else {
-      setBooks([...books, book]);
-      toast.success("Book added successfully");
-    }
-    
-    setIsAddDialogOpen(false);
-    setIsEditDialogOpen(false);
-    setSelectedBook(null);
-  };
-
-  const handleDeleteBook = async () => {
-    if (selectedBook) {
-      try {
-        await deleteBook(selectedBook.id);
-        setBooks(books.filter((b) => b.id !== selectedBook.id));
-        toast.success("Book deleted successfully");
-      } catch (error) {
-        console.error("Error deleting book:", error);
-        toast.error("Failed to delete book");
-      } finally {
-        setIsDeleteDialogOpen(false);
-        setSelectedBook(null);
-      }
-    }
-  };
 
   return (
     <MainLayout>
