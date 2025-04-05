@@ -1,9 +1,9 @@
-
 const express = require('express');
 const router = express.Router();
 const Reservation = require('../models/Reservation');
 const Book = require('../models/Book');
 const Member = require('../models/Member');
+const ActivityLog = require('../models/ActivityLog');
 
 // @route   GET api/reservations
 // @desc    Get all reservations
@@ -82,6 +82,18 @@ router.post('/', async (req, res) => {
     
     await reservation.save();
     
+    // Log the reservation activity
+    const activityLog = new ActivityLog({
+      userId: memberId,
+      action: 'reserve',
+      bookId,
+      details: {
+        reservationDate: reservation.reservationDate
+      }
+    });
+    
+    await activityLog.save();
+    
     // Populate the response
     const populatedReservation = await Reservation.findById(reservation._id)
       .populate('memberId', 'name email')
@@ -111,6 +123,26 @@ router.put('/:id', async (req, res) => {
     const reservationFields = {};
     if (status) reservationFields.status = status;
     if (notificationSent !== undefined) reservationFields.notificationSent = notificationSent;
+    
+    // If status is changing, log the activity
+    if (status && status !== reservation.status) {
+      const action = status === 'fulfilled' ? 'reservation_fulfilled' : 
+                    status === 'cancelled' ? 'cancel_reservation' : null;
+      
+      if (action) {
+        const activityLog = new ActivityLog({
+          userId: reservation.memberId,
+          action,
+          bookId: reservation.bookId,
+          details: {
+            previousStatus: reservation.status,
+            newStatus: status
+          }
+        });
+        
+        await activityLog.save();
+      }
+    }
     
     reservation = await Reservation.findByIdAndUpdate(
       req.params.id,

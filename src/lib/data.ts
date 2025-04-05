@@ -1,4 +1,3 @@
-
 // Types
 export interface Member {
   _id?: string; // MongoDB ID
@@ -58,6 +57,16 @@ export interface Notification {
   message: string;
   date: string;
   read: boolean;
+}
+
+export interface ActivityLog {
+  _id?: string; // MongoDB ID
+  id: string;   // Maintain compatibility with existing code
+  userId: string;
+  action: 'borrow' | 'return' | 'reserve' | 'cancel_reservation' | 'payment' | 'membership_update';
+  bookId?: string;
+  details?: any;
+  timestamp: string;
 }
 
 // Sample data for development

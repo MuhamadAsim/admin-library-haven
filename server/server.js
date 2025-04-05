@@ -1,4 +1,3 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -36,6 +35,7 @@ app.use('/api/books', require('./routes/books'));
 app.use('/api/dues', require('./routes/dues'));
 app.use('/api/reservations', require('./routes/reservations'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/activity-logs', require('./routes/activityLogs'));
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

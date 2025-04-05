@@ -5,6 +5,7 @@ const Due = require('../models/Due');
 const Book = require('../models/Book');
 const Member = require('../models/Member');
 const Reservation = require('../models/Reservation');
+const ActivityLog = require('../models/ActivityLog');
 
 // @route   GET api/dues
 // @desc    Get all dues
@@ -101,6 +102,19 @@ router.post('/', async (req, res) => {
           status: 'borrowed' 
         });
       }
+      
+      // Log the borrow activity
+      const activityLog = new ActivityLog({
+        userId: memberId,
+        action: 'borrow',
+        bookId,
+        details: {
+          dueDate,
+          issueDate: due.issueDate
+        }
+      });
+      
+      await activityLog.save();
     }
     
     await due.save();
@@ -152,6 +166,20 @@ router.put('/:id', async (req, res) => {
         $inc: { availableCopies: 1 },
         status: 'available'
       });
+      
+      // Log the return activity
+      const activityLog = new ActivityLog({
+        userId: due.memberId,
+        action: 'return',
+        bookId: due.bookId,
+        details: {
+          returnDate,
+          fineAmount,
+          status
+        }
+      });
+      
+      await activityLog.save();
       
       // Check for pending reservations for this book
       const pendingReservation = await Reservation.findOne({
