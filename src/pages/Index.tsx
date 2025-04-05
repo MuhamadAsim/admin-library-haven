@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Users, CreditCard, Library, AlertTriangle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import api from "@/services/api";
 
 // Animated counter hook
 const useAnimatedCounter = (targetValue: number, duration: number = 1000) => {
@@ -35,19 +37,82 @@ const useAnimatedCounter = (targetValue: number, duration: number = 1000) => {
   return count;
 };
 
+// Interface for dashboard stats
+interface DashboardStats {
+  members: { total: number, active: number };
+  books: { total: number, available: number, borrowed: number };
+  dues: { pending: number, total: number };
+}
+
 const Index = () => {
-  const stats = {
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
     members: { total: 0, active: 0 },
     books: { total: 0, available: 0, borrowed: 0 },
     dues: { pending: 0, total: 0 }
-  };
+  });
   
-  const animatedTotalMembers = useAnimatedCounter(stats.members.total);
-  const animatedActiveMembers = useAnimatedCounter(stats.members.active);
-  const animatedTotalBooks = useAnimatedCounter(stats.books.total);
-  const animatedAvailableBooks = useAnimatedCounter(stats.books.available);
-  const animatedBorrowedBooks = useAnimatedCounter(stats.books.borrowed);
-  const animatedPendingDues = useAnimatedCounter(stats.dues.pending);
+  // Use React Query to fetch dashboard stats
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['dashboardStats'],
+    queryFn: async () => {
+      try {
+        // Fetch members count
+        const membersResponse = await api.get('/members');
+        const members = membersResponse.data;
+        const activeMembers = members.filter((m: any) => m.status === 'active');
+        
+        // Fetch books count
+        const booksResponse = await api.get('/books');
+        const books = booksResponse.data;
+        const availableBooks = books.filter((b: any) => b.availableCopies > 0);
+        const borrowedBooks = books.filter((b: any) => b.status === 'borrowed');
+        
+        // Fetch dues info 
+        const duesResponse = await api.get('/dues');
+        const dues = duesResponse.data;
+        const pendingDues = dues.filter((d: any) => d.status === 'pending');
+        const totalAmount = pendingDues.reduce((sum: number, due: any) => sum + (due.amount || 0), 0);
+        
+        return {
+          members: { 
+            total: members.length, 
+            active: activeMembers.length 
+          },
+          books: { 
+            total: books.length, 
+            available: availableBooks.length,
+            borrowed: borrowedBooks.length 
+          },
+          dues: { 
+            pending: pendingDues.length, 
+            total: totalAmount 
+          }
+        };
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+        return {
+          members: { total: 0, active: 0 },
+          books: { total: 0, available: 0, borrowed: 0 },
+          dues: { pending: 0, total: 0 }
+        };
+      }
+    }
+  });
+  
+  // Update local state when stats are loaded
+  useEffect(() => {
+    if (stats) {
+      setDashboardStats(stats);
+    }
+  }, [stats]);
+  
+  // Use animated counters
+  const animatedTotalMembers = useAnimatedCounter(dashboardStats.members.total);
+  const animatedActiveMembers = useAnimatedCounter(dashboardStats.members.active);
+  const animatedTotalBooks = useAnimatedCounter(dashboardStats.books.total);
+  const animatedAvailableBooks = useAnimatedCounter(dashboardStats.books.available);
+  const animatedBorrowedBooks = useAnimatedCounter(dashboardStats.books.borrowed);
+  const animatedPendingDues = useAnimatedCounter(dashboardStats.dues.pending);
   
   return (
     <MainLayout>
@@ -116,7 +181,7 @@ const Index = () => {
             <CardContent className="relative z-10">
               <div className="text-3xl font-bold">{animatedPendingDues}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                ${stats.dues.total.toFixed(2)} USD total pending
+                ${dashboardStats.dues.total.toFixed(2)} USD total pending
               </p>
               <div className="mt-4">
                 <Button size="sm" variant="outline" asChild>

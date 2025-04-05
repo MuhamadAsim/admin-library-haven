@@ -16,7 +16,21 @@ export const getBookById = async (id: string): Promise<Book> => {
 
 // Add new book
 export const addBook = async (book: Omit<Book, 'id'>): Promise<Book> => {
-  const response = await api.post('/books', book);
+  const response = await api.post('/books', {
+    ...book,
+    // MongoDB will generate the ID, so we don't need to send it
+    // but ensure all required fields are sent
+    title: book.title,
+    author: book.author,
+    isbn: book.isbn,
+    publishedYear: book.publishedYear,
+    genre: book.genre,
+    description: book.description,
+    totalCopies: book.totalCopies || 1,
+    availableCopies: book.availableCopies || book.totalCopies || 1,
+    status: book.status || 'available',
+    coverImage: book.coverImage || 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=2070&auto=format&fit=crop'
+  });
   return response.data;
 };
 

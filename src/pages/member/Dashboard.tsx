@@ -1,9 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Book, BookOpen, Clock, Wallet2 } from "lucide-react";
 import MemberLayout from "@/components/Layout/MemberLayout";
 import { authService } from "@/services/authService";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/services/api";
 
 interface BookCountStats {
   borrowed: number;
@@ -19,7 +21,55 @@ export default function MemberDashboard() {
     overdue: 0,
     dues: 0
   });
+  
   const user = authService.getCurrentUser();
+  
+  // Fetch member stats using React Query
+  const { data, isLoading } = useQuery({
+    queryKey: ['memberStats', user?.id],
+    queryFn: async () => {
+      try {
+        if (!user || !user.id) return null;
+        
+        // Get member ID from user
+        const memberResponse = await api.get(`/users/${user.id}`);
+        const memberId = memberResponse.data?.memberId;
+        
+        if (!memberId) return null;
+        
+        // Get borrowed books count
+        const borrowedResponse = await api.get(`/dues?memberId=${memberId}&status=borrowed`);
+        const borrowed = borrowedResponse.data?.length || 0;
+        
+        // Get reserved books count
+        const reservedResponse = await api.get(`/reservations?memberId=${memberId}&status=pending`);
+        const reserved = reservedResponse.data?.length || 0;
+        
+        // Get overdue books count
+        const overdueResponse = await api.get(`/dues?memberId=${memberId}&status=overdue`);
+        const overdue = overdueResponse.data?.length || 0;
+        
+        // Get total dues amount
+        const duesResponse = await api.get(`/dues?memberId=${memberId}`);
+        const dues = duesResponse.data?.reduce(
+          (total: number, due: any) => total + (due.fees || 0), 
+          0
+        ) || 0;
+        
+        return { borrowed, reserved, overdue, dues };
+      } catch (error) {
+        console.error("Error fetching member stats:", error);
+        return null;
+      }
+    },
+    enabled: !!user?.id
+  });
+  
+  useEffect(() => {
+    if (data) {
+      setStats(data);
+    }
+  }, [data]);
 
   return (
     <MemberLayout>
@@ -35,7 +85,7 @@ export default function MemberDashboard() {
               <Book className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.borrowed}</div>
+              <div className="text-2xl font-bold">{isLoading ? '...' : stats.borrowed}</div>
               <p className="text-xs text-muted-foreground">
                 Active borrows
               </p>
@@ -50,7 +100,7 @@ export default function MemberDashboard() {
               <BookOpen className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.reserved}</div>
+              <div className="text-2xl font-bold">{isLoading ? '...' : stats.reserved}</div>
               <p className="text-xs text-muted-foreground">
                 Pending reservations
               </p>
@@ -65,7 +115,7 @@ export default function MemberDashboard() {
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.overdue}</div>
+              <div className="text-2xl font-bold">{isLoading ? '...' : stats.overdue}</div>
               <p className="text-xs text-muted-foreground">
                 Return soon to avoid fees
               </p>
@@ -80,7 +130,7 @@ export default function MemberDashboard() {
               <Wallet2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.dues}</div>
+              <div className="text-2xl font-bold">${isLoading ? '0.00' : stats.dues.toFixed(2)}</div>
               <p className="text-xs text-muted-foreground">
                 Outstanding payments
               </p>

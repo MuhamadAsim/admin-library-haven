@@ -18,7 +18,7 @@ interface BookFormProps {
 export function BookForm({ isOpen, onClose, onSave, initialData, mode }: BookFormProps) {
   const [formData, setFormData] = useState<Book>(
     initialData || {
-      id: `b${Date.now()}`,
+      id: `b${Date.now()}`,  // This will be ignored by MongoDB
       title: "",
       author: "",
       isbn: "",
@@ -35,8 +35,23 @@ export function BookForm({ isOpen, onClose, onSave, initialData, mode }: BookFor
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
+    } else {
+      // Reset form data for new books
+      setFormData({
+        id: `b${Date.now()}`,  // This will be ignored by MongoDB
+        title: "",
+        author: "",
+        isbn: "",
+        publishedYear: new Date().getFullYear(),
+        genre: "",
+        description: "",
+        totalCopies: 1,
+        availableCopies: 1,
+        status: "available",
+        coverImage: ""
+      });
     }
-  }, [initialData]);
+  }, [initialData, isOpen]);
 
   const handleChange = (field: keyof Book, value: string | number) => {
     setFormData(prev => ({
@@ -105,7 +120,7 @@ export function BookForm({ isOpen, onClose, onSave, initialData, mode }: BookFor
         : "Book updated successfully"
     );
   };
-//
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="glass-panel max-w-md mx-auto my-1 py-2">
