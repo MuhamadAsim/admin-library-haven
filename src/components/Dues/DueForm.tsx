@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,6 @@ interface DueFormProps {
 }
 
 export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormProps) {
-  // Extract member and book IDs from potentially complex objects
   const getMemberId = (memberId: MemberReference): string => {
     if (typeof memberId === 'object' && memberId !== null) {
       return memberId.id;
@@ -38,8 +36,8 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
   const [formData, setFormData] = useState<Due>(
     initialData || {
       id: `d${Date.now()}`,
-      memberId: "",
-      bookId: "",
+      memberId: "" as MemberReference,
+      bookId: "" as BookReference,
       issueDate: new Date().toISOString().split('T')[0],
       dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       returnDate: null,
@@ -72,7 +70,7 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
     fetchData();
   }, [mode]);
 
-  const handleChange = (field: keyof Due, value: string | number | null) => {
+  const handleChange = (field: keyof Due, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
