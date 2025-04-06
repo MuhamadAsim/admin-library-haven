@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, PlusCircle } from "lucide-react";
-import { Due, dues as initialDues, getMemberName, getBookTitle } from "@/lib/data";
+import { Due } from "@/types";
+import { dues as initialDues } from "@/data/dues";
+import { getMemberName, getBookTitle } from "@/utils/referenceHelpers";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
