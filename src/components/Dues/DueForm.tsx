@@ -25,7 +25,7 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
     if (typeof memberId === 'object' && memberId !== null) {
       return memberId.id;
     }
-    return memberId;
+    return memberId as string;
   };
 
   // Helper function to extract ID from book reference
@@ -33,7 +33,7 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
     if (typeof bookId === 'object' && bookId !== null) {
       return bookId.id;
     }
-    return bookId;
+    return bookId as string;
   };
 
   const [formData, setFormData] = useState<Due>(
