@@ -129,10 +129,14 @@ const Dues = () => {
     if (isEditDialogOpen) {
       // Update existing due
       setDues(dues.map((d) => (d.id === due.id ? due : d)));
+      toast.success("Record updated successfully");
     } else {
       // Add new due
       setDues([...dues, due]);
+      toast.success("Book issued successfully");
     }
+    setIsAddDialogOpen(false);
+    setIsEditDialogOpen(false);
   };
 
   // Handle due deletion
