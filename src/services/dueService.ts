@@ -14,6 +14,12 @@ export const getDueById = async (id: string): Promise<Due> => {
   return response.data;
 };
 
+// Get dues by member ID
+export const getDuesByMemberId = async (memberId: string): Promise<Due[]> => {
+  const response = await api.get(`/dues/member/${memberId}`);
+  return response.data;
+};
+
 // Add new due (issue a book)
 export const addDue = async (due: Omit<Due, 'id' | '_id'>): Promise<Due> => {
   try {

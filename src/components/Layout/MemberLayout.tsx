@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Book, User, CreditCard, Bell, LogOut, Menu, X, Home } from "lucide-react";
+import { Book, User, CreditCard, Bell, LogOut, Menu, X, Home, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -24,6 +24,7 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
   const navItems = [
     { name: "Dashboard", href: "/member/dashboard", icon: Home },
     { name: "Books", href: "/member/books", icon: Book },
+    { name: "Borrowed Books", href: "/member/borrowed-books", icon: BookOpen },
     { name: "Reservations", href: "/member/reservations", icon: User },
     { name: "Dues", href: "/member/dues", icon: CreditCard },
     { name: "Notifications", href: "/member/notifications", icon: Bell },

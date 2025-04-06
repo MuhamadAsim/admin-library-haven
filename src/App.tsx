@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,6 +24,7 @@ import Login from "./pages/Login";
 // Member Pages
 import MemberDashboard from "./pages/member/Dashboard";
 import MemberBooks from "./pages/member/Books";
+import MemberBorrowedBooks from "./pages/member/BorrowedBooks";
 import MemberReservations from "./pages/member/Reservations";
 import MemberDues from "./pages/member/Dues";
 import MemberNotifications from "./pages/member/Notifications";
@@ -142,6 +144,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MemberBooks />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/member/borrowed-books" 
+                element={
+                  <ProtectedRoute>
+                    <MemberBorrowedBooks />
                   </ProtectedRoute>
                 } 
               />

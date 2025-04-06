@@ -11,6 +11,7 @@ import { Book } from "@/lib/data";
 import { getBooks } from "@/services/bookService";
 import { reserveBook } from "@/services/reservationService";
 import { authService } from "@/services/authService";
+import { getDuesByMemberId } from "@/services/dueService";
 
 interface BookDisplay {
   id: string;
@@ -19,6 +20,7 @@ interface BookDisplay {
   genre: string;
   available: boolean;
   cover?: string;
+  isBorrowed?: boolean;
 }
 
 export default function MemberBooks() {
@@ -33,15 +35,37 @@ export default function MemberBooks() {
       try {
         setIsLoading(true);
         const fetchedBooks = await getBooks();
+        const user = authService.getCurrentUser();
         
-        const displayBooks: BookDisplay[] = fetchedBooks.map(book => ({
-          id: book.id || book._id,
-          title: book.title,
-          author: book.author,
-          genre: book.genre,
-          available: book.status === 'available' && book.availableCopies > 0,
-          cover: book.coverImage
-        }));
+        // Get currently borrowed books
+        let borrowedBookIds: string[] = [];
+        if (user) {
+          const dues = await getDuesByMemberId(user.id);
+          borrowedBookIds = dues
+            .filter(due => !due.returnDate) // Only currently borrowed
+            .map(due => {
+              if (typeof due.bookId === 'string') {
+                return due.bookId;
+              } else if (due.bookId && typeof due.bookId === 'object') {
+                return due.bookId.id || due.bookId._id || '';
+              }
+              return '';
+            })
+            .filter(id => id !== '');
+        }
+        
+        const displayBooks: BookDisplay[] = fetchedBooks.map(book => {
+          const bookId = book.id || book._id || '';
+          return {
+            id: bookId,
+            title: book.title,
+            author: book.author,
+            genre: book.genre,
+            available: book.status === 'available' && book.availableCopies > 0,
+            cover: book.coverImage,
+            isBorrowed: borrowedBookIds.includes(bookId)
+          };
+        });
         
         setBooks(displayBooks);
       } catch (error) {
@@ -147,7 +171,15 @@ export default function MemberBooks() {
                 {filteredBooks.map((book) => (
                   <Card key={book.id} className="overflow-hidden">
                     <div className="h-32 bg-primary/10 flex items-center justify-center">
-                      <BookOpen className="h-16 w-16 text-primary/60" />
+                      {book.cover ? (
+                        <img 
+                          src={book.cover} 
+                          alt={book.title}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <BookOpen className="h-16 w-16 text-primary/60" />
+                      )}
                     </div>
                     <CardHeader>
                       <CardTitle className="line-clamp-1">{book.title}</CardTitle>
@@ -158,22 +190,30 @@ export default function MemberBooks() {
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center justify-between">
-                        <Badge className={book.available ? "bg-green-500" : "bg-red-500"}>
-                          {book.available ? "Available" : "Unavailable"}
-                        </Badge>
+                        {book.isBorrowed ? (
+                          <Badge className="bg-blue-500">Currently Borrowed</Badge>
+                        ) : (
+                          <Badge className={book.available ? "bg-green-500" : "bg-red-500"}>
+                            {book.available ? "Available" : "Unavailable"}
+                          </Badge>
+                        )}
                         <div className="space-x-2">
                           <Button 
                             size="sm" 
                             variant="outline" 
                             onClick={() => handleReserve(book)}
-                            disabled={isReserving === book.id}
+                            disabled={isReserving === book.id || book.isBorrowed}
                           >
-                            Reserve
+                            {book.isBorrowed ? "Borrowed" : "Reserve"}
                           </Button>
                         </div>
                       </div>
                       <div className="mt-3 text-sm text-muted-foreground">
-                        <p>Visit the library to check out books.</p>
+                        <p>
+                          {book.isBorrowed 
+                            ? "You currently have this book checked out." 
+                            : "Visit the library to check out books."}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>

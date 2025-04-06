@@ -23,6 +23,25 @@ router.get('/', async (req, res) => {
   }
 });
 
+// @route   GET api/dues/member/:memberId
+// @desc    Get dues by member ID
+// @access  Public
+router.get('/member/:memberId', async (req, res) => {
+  try {
+    const dues = await Due.find({ 
+      memberId: req.params.memberId
+    })
+      .populate('bookId', 'title author isbn coverImage')
+      .populate('memberId', 'name')
+      .sort({ issueDate: -1 });
+    
+    res.json(dues);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET api/dues/:id
 // @desc    Get due by ID
 // @access  Public
