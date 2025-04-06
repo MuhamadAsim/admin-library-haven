@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +15,7 @@ import Books from "./pages/Books";
 import Dues from "./pages/Dues";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Reservations from "./pages/Reservations";
 
 // Auth Pages
 import Login from "./pages/Login";
@@ -27,12 +27,15 @@ import MemberReservations from "./pages/member/Reservations";
 import MemberDues from "./pages/member/Dues";
 import MemberNotifications from "./pages/member/Notifications";
 
+// Book Management Page
+import BookManagement from "./pages/BookManagement";
+
 const queryClient = new QueryClient();
 
 // Get saved theme from localStorage or default to system
 const savedTheme = localStorage.getItem("vite-ui-theme") || "system";
 
-const App = () => {
+function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -57,7 +60,7 @@ const App = () => {
   }
 
   return (
-    <ThemeProvider defaultTheme={savedTheme as "light" | "dark" | "system"}>
+    <ThemeProvider defaultTheme="system" storageKey="library-theme">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
@@ -71,39 +74,55 @@ const App = () => {
               <Route 
                 path="/" 
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin={true}>
                     <Index />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/members" 
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <Members />
                   </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/books" 
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin={true}>
                     <Books />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/book-management" 
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <BookManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/members" 
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <Members />
                   </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/dues" 
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin={true}>
                     <Dues />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/reservations" 
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <Reservations />
                   </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/settings" 
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin={true}>
                     <Settings />
                   </ProtectedRoute>
                 } 
@@ -171,6 +190,6 @@ const App = () => {
       </QueryClientProvider>
     </ThemeProvider>
   );
-};
+}
 
 export default App;

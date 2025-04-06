@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
-import { Book, User, CreditCard, BarChart3, Settings, Menu, X, LogOut } from "lucide-react";
+import { Book, User, CreditCard, BarChart3, Settings, Menu, X, LogOut, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -20,11 +19,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Navigation items
   const navItems = [
     { name: "Dashboard", href: "/", icon: BarChart3 },
     { name: "Members", href: "/members", icon: User },
     { name: "Books", href: "/books", icon: Book },
+    { name: "Book Management", href: "/book-management", icon: BookOpen },
     { name: "Dues", href: "/dues", icon: CreditCard },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
@@ -34,7 +33,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
   }, []);
 
   useEffect(() => {
-    // Close mobile menu when route changes
     setIsMobileMenuOpen(false);
   }, [location]);
 
@@ -52,7 +50,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        {/* Desktop Sidebar */}
         <Sidebar className="hidden md:flex">
           <div className="flex flex-col h-full">
             <div className="p-4 border-b">
@@ -98,7 +95,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
           </div>
         </Sidebar>
 
-        {/* Mobile Menu */}
         <div 
           className={cn(
             "fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden",
@@ -156,7 +152,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
           </div>
         </div>
 
-        {/* Main Content */}
         <main className="flex-1 min-w-0 overflow-auto">
           <div className="sticky top-0 z-30 flex items-center justify-between bg-background/95 backdrop-blur-sm border-b px-4 h-14">
             <Button 

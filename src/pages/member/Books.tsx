@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,8 @@ import MemberLayout from "@/components/Layout/MemberLayout";
 import { useToast } from "@/hooks/use-toast";
 import { Book } from "@/lib/data";
 import { getBooks } from "@/services/bookService";
+import { reserveBook } from "@/services/reservationService";
+import { authService } from "@/services/authService";
 
 interface BookDisplay {
   id: string;
@@ -22,6 +25,7 @@ export default function MemberBooks() {
   const [books, setBooks] = useState<BookDisplay[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isReserving, setIsReserving] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,7 +35,7 @@ export default function MemberBooks() {
         const fetchedBooks = await getBooks();
         
         const displayBooks: BookDisplay[] = fetchedBooks.map(book => ({
-          id: book.id,
+          id: book.id || book._id,
           title: book.title,
           author: book.author,
           genre: book.genre,
@@ -61,18 +65,42 @@ export default function MemberBooks() {
     book.genre.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleBorrow = (book: BookDisplay) => {
-    toast({
-      title: "Book Borrowed",
-      description: `You have successfully borrowed "${book.title}"`,
-    });
-  };
+  const handleReserve = async (book: BookDisplay) => {
+    const user = authService.getCurrentUser();
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You need to be logged in to reserve books.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-  const handleReserve = (book: BookDisplay) => {
-    toast({
-      title: "Book Reserved",
-      description: `You have successfully reserved "${book.title}". We'll notify you when it's available.`,
-    });
+    try {
+      setIsReserving(book.id);
+      await reserveBook(book.id, user.id);
+      
+      toast({
+        title: "Book Reserved",
+        description: `You have successfully reserved "${book.title}". We'll notify you when it's available.`,
+      });
+    } catch (error: any) {
+      console.error("Error reserving book:", error);
+      let errorMessage = "Failed to reserve book. Please try again.";
+      
+      // If the API returns a specific error message
+      if (error.response && error.response.data && error.response.data.msg) {
+        errorMessage = error.response.data.msg;
+      }
+      
+      toast({
+        title: "Reservation Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsReserving(null);
+    }
   };
 
   return (
@@ -134,23 +162,18 @@ export default function MemberBooks() {
                           {book.available ? "Available" : "Unavailable"}
                         </Badge>
                         <div className="space-x-2">
-                          {book.available ? (
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleBorrow(book)}
-                            >
-                              Borrow
-                            </Button>
-                          ) : (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              onClick={() => handleReserve(book)}
-                            >
-                              Reserve
-                            </Button>
-                          )}
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => handleReserve(book)}
+                            disabled={isReserving === book.id}
+                          >
+                            Reserve
+                          </Button>
                         </div>
+                      </div>
+                      <div className="mt-3 text-sm text-muted-foreground">
+                        <p>Visit the library to check out books.</p>
                       </div>
                     </CardContent>
                   </Card>
