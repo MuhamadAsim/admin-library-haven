@@ -25,7 +25,7 @@ const extractId = (ref: MemberReference | BookReference): string => {
   if (typeof ref === 'object' && ref !== null) {
     return ref.id;
   }
-  return ref;
+  return ref as string;
 };
 
 // Add new due (issue a book)

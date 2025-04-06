@@ -20,6 +20,7 @@ interface DueFormProps {
 }
 
 export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormProps) {
+  // Helper function to extract ID from member reference
   const getMemberId = (memberId: MemberReference): string => {
     if (typeof memberId === 'object' && memberId !== null) {
       return memberId.id;
@@ -27,6 +28,7 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
     return memberId;
   };
 
+  // Helper function to extract ID from book reference
   const getBookId = (bookId: BookReference): string => {
     if (typeof bookId === 'object' && bookId !== null) {
       return bookId.id;
@@ -124,13 +126,6 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
     }
     
     onSave(formData);
-    onClose();
-    
-    toast.success(
-      mode === 'create' 
-        ? "Book issued successfully" 
-        : "Record updated successfully"
-    );
   };
 
   return (
