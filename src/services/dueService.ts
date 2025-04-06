@@ -1,6 +1,6 @@
 
 import api from './api';
-import { Due } from '@/lib/data';
+import { Due, MemberReference, BookReference } from '@/lib/data';
 
 // Get all dues
 export const getDues = async (): Promise<Due[]> => {
@@ -20,10 +20,25 @@ export const getDuesByMemberId = async (memberId: string): Promise<Due[]> => {
   return response.data;
 };
 
+// Extract ID from member or book reference
+const extractId = (ref: MemberReference | BookReference): string => {
+  if (typeof ref === 'object' && ref !== null) {
+    return ref.id;
+  }
+  return ref;
+};
+
 // Add new due (issue a book)
 export const addDue = async (due: Omit<Due, 'id' | '_id'>): Promise<Due> => {
   try {
-    const response = await api.post('/dues', due);
+    // Extract IDs if objects were passed
+    const payload = {
+      ...due,
+      memberId: extractId(due.memberId),
+      bookId: extractId(due.bookId)
+    };
+    
+    const response = await api.post('/dues', payload);
     return response.data;
   } catch (error) {
     console.error("Error adding due record:", error);

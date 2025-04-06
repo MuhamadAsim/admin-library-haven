@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
-import { Due, Book, Member } from "@/lib/data";
+import { Due, Book, Member, MemberReference, BookReference } from "@/lib/data";
 import { getMembers } from "@/services/memberService";
 import { getBooks } from "@/services/bookService";
 
@@ -19,6 +20,21 @@ interface DueFormProps {
 }
 
 export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormProps) {
+  // Extract member and book IDs from potentially complex objects
+  const getMemberId = (memberId: MemberReference): string => {
+    if (typeof memberId === 'object' && memberId !== null) {
+      return memberId.id;
+    }
+    return memberId;
+  };
+
+  const getBookId = (bookId: BookReference): string => {
+    if (typeof bookId === 'object' && bookId !== null) {
+      return bookId.id;
+    }
+    return bookId;
+  };
+
   const [formData, setFormData] = useState<Due>(
     initialData || {
       id: `d${Date.now()}`,
@@ -132,7 +148,7 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
             <div className="space-y-2">
               <Label htmlFor="memberId">Member</Label>
               <Select 
-                value={formData.memberId} 
+                value={getMemberId(formData.memberId)} 
                 onValueChange={(value) => handleChange('memberId', value)}
                 disabled={mode === 'edit'}
               >
@@ -152,7 +168,7 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
             <div className="space-y-2">
               <Label htmlFor="bookId">Book</Label>
               <Select 
-                value={formData.bookId} 
+                value={getBookId(formData.bookId)} 
                 onValueChange={(value) => handleChange('bookId', value)}
                 disabled={mode === 'edit'}
               >

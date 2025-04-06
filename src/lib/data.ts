@@ -1,4 +1,3 @@
-
 // Types
 export interface Member {
   _id?: string; // MongoDB ID
@@ -26,11 +25,17 @@ export interface Book {
   coverImage: string;
 }
 
+// Define member reference type
+export type MemberReference = string | { id: string; _id?: string; name?: string; email?: string };
+
+// Define book reference type
+export type BookReference = string | { id: string; _id?: string; title?: string; author?: string };
+
 export interface Due {
   _id?: string; // MongoDB ID
   id: string;   // Maintain compatibility with existing code
-  memberId: string | { id: string; _id?: string; name?: string; email?: string };
-  bookId: string | { id: string; _id?: string; title?: string; author?: string };
+  memberId: MemberReference;
+  bookId: BookReference;
   issueDate: string;
   dueDate: string;
   returnDate: string | null;
@@ -235,12 +240,18 @@ export const notifications: Notification[] = [
 ];
 
 // Helper functions
-export const getMemberName = (memberId: string): string => {
+export const getMemberName = (memberId: MemberReference): string => {
+  if (typeof memberId === 'object' && memberId !== null) {
+    return memberId.name || 'Unknown Member';
+  }
   const member = members.find(m => m.id === memberId);
   return member ? member.name : 'Unknown Member';
 };
 
-export const getBookTitle = (bookId: string): string => {
+export const getBookTitle = (bookId: BookReference): string => {
+  if (typeof bookId === 'object' && bookId !== null) {
+    return bookId.title || 'Unknown Book';
+  }
   const book = books.find(b => b.id === bookId);
   return book ? book.title : 'Unknown Book';
 };
