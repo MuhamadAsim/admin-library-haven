@@ -15,7 +15,7 @@ export const getDueById = async (id: string): Promise<Due> => {
 };
 
 // Add new due (issue a book)
-export const addDue = async (due: Omit<Due, 'id'>): Promise<Due> => {
+export const addDue = async (due: Omit<Due, 'id' | '_id'>): Promise<Due> => {
   try {
     const response = await api.post('/dues', due);
     return response.data;
@@ -26,7 +26,7 @@ export const addDue = async (due: Omit<Due, 'id'>): Promise<Due> => {
 };
 
 // Update due (return a book, pay fine, etc.)
-export const updateDue = async (id: string, due: Partial<Due>): Promise<Due> => {
+export const updateDue = async (id: string, due: Partial<Omit<Due, 'id' | '_id' | 'memberId' | 'bookId'>>): Promise<Due> => {
   try {
     const response = await api.put(`/dues/${id}`, due);
     return response.data;

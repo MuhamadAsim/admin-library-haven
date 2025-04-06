@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -75,11 +76,11 @@ export default function BookManagement() {
         const allDues = await dueService.getDues();
         const memberDues = allDues.filter(due => {
           const dueMemId = due.memberId;
-          return dueMemId && (
-            dueMemId === selectedMemberId || 
-            (typeof dueMemId === 'object' && dueMemId._id === selectedMemberId) ||
-            (typeof dueMemId === 'object' && dueMemId.id === selectedMemberId)
-          );
+          if (!dueMemId) return false;
+          
+          return typeof dueMemId === 'string' 
+            ? dueMemId === selectedMemberId
+            : (dueMemId._id === selectedMemberId || dueMemId.id === selectedMemberId);
         }).filter(due => !due.returnDate);
         
         setActiveBorrowings(memberDues);
@@ -510,9 +511,9 @@ export default function BookManagement() {
                       <div className="space-y-2">
                         {activeBorrowings.map((due) => {
                           const bookId = due.bookId ? (
-                            typeof due.bookId === 'object' ? 
-                              (due.bookId.id || due.bookId._id) : due.bookId
-                          ) : null;
+                            typeof due.bookId === 'string' ? 
+                              due.bookId : (due.bookId.id || due.bookId._id || "")
+                          ) : "";
                           
                           if (!bookId) return null;
                           

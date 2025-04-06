@@ -1,3 +1,4 @@
+
 // Types
 export interface Member {
   _id?: string; // MongoDB ID
@@ -28,8 +29,8 @@ export interface Book {
 export interface Due {
   _id?: string; // MongoDB ID
   id: string;   // Maintain compatibility with existing code
-  memberId: string;
-  bookId: string;
+  memberId: string | { id: string; _id?: string; name?: string; email?: string };
+  bookId: string | { id: string; _id?: string; title?: string; author?: string };
   issueDate: string;
   dueDate: string;
   returnDate: string | null;
