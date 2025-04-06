@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,7 +36,6 @@ export default function BookManagement() {
   
   const { toast } = useToast();
 
-  // Fetch books and members on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -65,7 +63,6 @@ export default function BookManagement() {
     fetchData();
   }, [toast]);
 
-  // Fetch active borrowings when a member is selected
   useEffect(() => {
     const fetchActiveBorrowings = async () => {
       if (!selectedMemberId) {
@@ -76,11 +73,14 @@ export default function BookManagement() {
       try {
         setActiveLoading(true);
         const allDues = await dueService.getDues();
-        const memberDues = allDues.filter(due => 
-          (due.memberId && due.memberId === selectedMemberId) || 
-          (due.memberId && typeof due.memberId === 'object' && due.memberId._id === selectedMemberId) ||
-          (due.memberId && typeof due.memberId === 'object' && due.memberId.id === selectedMemberId)
-        ).filter(due => !due.returnDate);
+        const memberDues = allDues.filter(due => {
+          const dueMemId = due.memberId;
+          return dueMemId && (
+            dueMemId === selectedMemberId || 
+            (typeof dueMemId === 'object' && dueMemId._id === selectedMemberId) ||
+            (typeof dueMemId === 'object' && dueMemId.id === selectedMemberId)
+          );
+        }).filter(due => !due.returnDate);
         
         setActiveBorrowings(memberDues);
       } catch (error) {
@@ -98,7 +98,6 @@ export default function BookManagement() {
     fetchActiveBorrowings();
   }, [selectedMemberId, toast]);
 
-  // Handle issuing a book
   const handleIssueBook = async () => {
     if (!selectedMemberId || !selectedBookId) {
       toast({
@@ -112,7 +111,6 @@ export default function BookManagement() {
     try {
       setIssuanceLoading(true);
       
-      // Check if book is available
       const book = books.find(b => b.id === selectedBookId || b._id === selectedBookId);
       if (!book || (book.availableCopies <= 0)) {
         toast({
@@ -123,11 +121,9 @@ export default function BookManagement() {
         return;
       }
       
-      // Create due date (14 days from now)
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 14);
       
-      // Create due record
       const dueRecord = await dueService.addDue({
         memberId: selectedMemberId,
         bookId: selectedBookId,
@@ -138,7 +134,6 @@ export default function BookManagement() {
         status: 'pending'
       });
       
-      // Create activity log
       await activityLogService.addActivityLog({
         userId: selectedMemberId,
         action: 'borrow',
@@ -149,21 +144,17 @@ export default function BookManagement() {
         }
       });
       
-      // Update book copies
       const updatedBook = await bookService.updateBook(selectedBookId, {
         availableCopies: (book.availableCopies - 1),
         status: book.availableCopies <= 1 ? 'borrowed' : 'available'
       });
       
-      // Update books list
       setBooks(books.map(b => 
         (b.id === selectedBookId || b._id === selectedBookId) ? updatedBook : b
       ));
       
-      // Reset selection
       setSelectedBookId("");
       
-      // Refresh active borrowings
       const allDues = await dueService.getDues();
       const memberDues = allDues.filter(due => 
         (due.memberId && due.memberId === selectedMemberId) || 
@@ -188,47 +179,42 @@ export default function BookManagement() {
     }
   };
 
-  // Handle returning a book
   const handleReturnBook = async (dueId: string, bookId: string, fine: number = 0) => {
     try {
       setReturnLoading(true);
       
-      // Update due record
       const updatedDue = await dueService.updateDue(dueId, {
         returnDate: new Date().toISOString(),
         fineAmount: fine,
         status: fine > 0 ? 'pending' : 'paid'
       });
       
-      // Get the book
       const book = books.find(b => b.id === bookId || b._id === bookId);
       if (!book) {
         throw new Error("Book not found");
       }
       
-      // Update book copies
       const updatedBook = await bookService.updateBook(bookId, {
         availableCopies: (book.availableCopies + 1),
         status: 'available'
       });
       
-      // Create activity log
-      await activityLogService.addActivityLog({
-        userId: selectedMemberId,
-        action: 'return',
-        bookId: bookId,
-        details: {
-          returnDate: new Date().toISOString(),
-          fineAmount: fine
-        }
-      });
+      if (selectedMemberId) {
+        await activityLogService.addActivityLog({
+          userId: selectedMemberId,
+          action: 'return',
+          bookId: bookId,
+          details: {
+            returnDate: new Date().toISOString(),
+            fineAmount: fine
+          }
+        });
+      }
       
-      // Update books list
       setBooks(books.map(b => 
         (b.id === bookId || b._id === bookId) ? updatedBook : b
       ));
       
-      // Update active borrowings
       setActiveBorrowings(activeBorrowings.filter(due => due.id !== dueId && due._id !== dueId));
       
       toast({
@@ -247,7 +233,6 @@ export default function BookManagement() {
     }
   };
 
-  // Get book title by ID
   const getBookTitle = (bookId: string) => {
     if (!bookId) return "Unknown Book";
     
@@ -257,33 +242,26 @@ export default function BookManagement() {
     return book.title;
   };
 
-  // Calculate fine if book is overdue
   const calculateFine = (dueDate: string): number => {
     const due = new Date(dueDate);
     const today = new Date();
     
-    // If not overdue, no fine
     if (due >= today) return 0;
     
-    // Calculate days overdue
     const daysOverdue = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
     
-    // $1 per day overdue
     return daysOverdue;
   };
 
-  // Filter members based on search term
   const filteredMembers = members.filter(member => 
     member.name.toLowerCase().includes(memberSearchTerm.toLowerCase())
   );
 
-  // Filter available books based on search term
   const filteredBooks = books.filter(book => 
     book.title.toLowerCase().includes(bookSearchTerm.toLowerCase()) && 
     book.availableCopies > 0
   );
 
-  // Get member name by ID
   const getMemberName = (memberId: string) => {
     if (!memberId) return "";
     
@@ -531,8 +509,10 @@ export default function BookManagement() {
                     ) : (
                       <div className="space-y-2">
                         {activeBorrowings.map((due) => {
-                          const bookId = due.bookId && typeof due.bookId === 'object' ? 
-                            (due.bookId.id || due.bookId._id) : due.bookId;
+                          const bookId = due.bookId ? (
+                            typeof due.bookId === 'object' ? 
+                              (due.bookId.id || due.bookId._id) : due.bookId
+                          ) : null;
                           
                           if (!bookId) return null;
                           

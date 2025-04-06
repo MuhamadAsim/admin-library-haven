@@ -16,17 +16,32 @@ export const getDueById = async (id: string): Promise<Due> => {
 
 // Add new due (issue a book)
 export const addDue = async (due: Omit<Due, 'id'>): Promise<Due> => {
-  const response = await api.post('/dues', due);
-  return response.data;
+  try {
+    const response = await api.post('/dues', due);
+    return response.data;
+  } catch (error) {
+    console.error("Error adding due record:", error);
+    throw error;
+  }
 };
 
 // Update due (return a book, pay fine, etc.)
 export const updateDue = async (id: string, due: Partial<Due>): Promise<Due> => {
-  const response = await api.put(`/dues/${id}`, due);
-  return response.data;
+  try {
+    const response = await api.put(`/dues/${id}`, due);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating due record:", error);
+    throw error;
+  }
 };
 
 // Delete due record
 export const deleteDue = async (id: string): Promise<void> => {
-  await api.delete(`/dues/${id}`);
+  try {
+    await api.delete(`/dues/${id}`);
+  } catch (error) {
+    console.error("Error deleting due record:", error);
+    throw error;
+  }
 };
