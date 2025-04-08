@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Users, RefreshCw, Loader2, Search } from "lucide-react";
+import { BookOpen, Users, RefreshCw, Loader2 } from "lucide-react";
 import MainLayout from "@/components/Layout/MainLayout";
 import { useToast } from "@/hooks/use-toast";
 import { Book, Member, Due } from "@/lib/data";
@@ -12,12 +12,7 @@ import * as memberService from "@/services/memberService";
 import * as dueService from "@/services/dueService";
 import * as activityLogService from "@/services/activityLogService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { BookManagementSearch } from "@/components/Books/BookManagementSearch";
 
 export default function BookManagement() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -30,10 +25,6 @@ export default function BookManagement() {
   const [activeLoading, setActiveLoading] = useState(true);
   const [issuanceLoading, setIssuanceLoading] = useState(false);
   const [returnLoading, setReturnLoading] = useState(false);
-  const [memberSearchTerm, setMemberSearchTerm] = useState("");
-  const [bookSearchTerm, setBookSearchTerm] = useState("");
-  const [openMemberPopover, setOpenMemberPopover] = useState(false);
-  const [openBookPopover, setOpenBookPopover] = useState(false);
   
   const { toast } = useToast();
 
@@ -254,21 +245,21 @@ export default function BookManagement() {
     return daysOverdue;
   };
 
-  const filteredMembers = members.filter(member => 
-    member.name.toLowerCase().includes(memberSearchTerm.toLowerCase())
-  );
+  const availableBooks = books.filter(book => book.availableCopies > 0);
 
-  const filteredBooks = books.filter(book => 
-    book.title.toLowerCase().includes(bookSearchTerm.toLowerCase()) && 
-    book.availableCopies > 0
-  );
+  const membersForSearch = members.map(member => ({
+    id: member.id || member._id || "",
+    _id: member._id,
+    label: member.name,
+    description: member.email
+  }));
 
-  const getMemberName = (memberId: string) => {
-    if (!memberId) return "";
-    
-    const member = members.find(m => m.id === memberId || m._id === memberId);
-    return member ? member.name : "";
-  };
+  const booksForSearch = availableBooks.map(book => ({
+    id: book.id || book._id || "",
+    _id: book._id,
+    label: book.title,
+    description: `by ${book.author} (Copies: ${book.availableCopies})`
+  }));
 
   return (
     <MainLayout>
@@ -287,128 +278,26 @@ export default function BookManagement() {
                 <CardTitle>Issue a Book to Member</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="member-select">Select Member</Label>
-                  <Popover open={openMemberPopover} onOpenChange={setOpenMemberPopover}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openMemberPopover}
-                        className="w-full justify-between"
-                      >
-                        {selectedMemberId
-                          ? getMemberName(selectedMemberId)
-                          : "Search for a member..."}
-                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start">
-                      <Command>
-                        <CommandInput
-                          placeholder="Search members..."
-                          value={memberSearchTerm}
-                          onValueChange={setMemberSearchTerm}
-                        />
-                        {membersLoading ? (
-                          <div className="flex items-center justify-center p-4">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          </div>
-                        ) : (
-                          <>
-                            <CommandEmpty>No members found.</CommandEmpty>
-                            <CommandGroup>
-                              {filteredMembers.map((member) => (
-                                <CommandItem
-                                  key={member.id || member._id}
-                                  value={member.name}
-                                  onSelect={() => {
-                                    setSelectedMemberId(member.id || member._id || "");
-                                    setMemberSearchTerm("");
-                                    setOpenMemberPopover(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      (member.id === selectedMemberId || 
-                                       member._id === selectedMemberId)
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  {member.name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </>
-                        )}
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                <BookManagementSearch 
+                  items={membersForSearch}
+                  selectedId={selectedMemberId}
+                  onSelect={setSelectedMemberId}
+                  placeholder="Search for a member..."
+                  label="Select Member"
+                  isLoading={membersLoading}
+                  emptyMessage="No members found."
+                />
                 
-                <div className="space-y-2">
-                  <Label htmlFor="book-select">Select Book</Label>
-                  <Popover open={openBookPopover} onOpenChange={setOpenBookPopover}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openBookPopover}
-                        className="w-full justify-between"
-                        disabled={!selectedMemberId}
-                      >
-                        {selectedBookId
-                          ? getBookTitle(selectedBookId)
-                          : "Search for a book..."}
-                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start">
-                      <Command>
-                        <CommandInput
-                          placeholder="Search books..."
-                          value={bookSearchTerm}
-                          onValueChange={setBookSearchTerm}
-                        />
-                        {booksLoading ? (
-                          <div className="flex items-center justify-center p-4">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          </div>
-                        ) : (
-                          <>
-                            <CommandEmpty>No available books found.</CommandEmpty>
-                            <CommandGroup>
-                              {filteredBooks.map((book) => (
-                                <CommandItem
-                                  key={book.id || book._id}
-                                  value={book.title}
-                                  onSelect={() => {
-                                    setSelectedBookId(book.id || book._id || "");
-                                    setBookSearchTerm("");
-                                    setOpenBookPopover(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      (book.id === selectedBookId || 
-                                       book._id === selectedBookId)
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  {book.title} (Copies: {book.availableCopies})
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </>
-                        )}
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                <BookManagementSearch 
+                  items={booksForSearch}
+                  selectedId={selectedBookId}
+                  onSelect={setSelectedBookId}
+                  placeholder="Search for a book..."
+                  label="Select Book"
+                  isLoading={booksLoading}
+                  disabled={!selectedMemberId}
+                  emptyMessage="No available books found."
+                />
                 
                 <Button 
                   className="w-full" 
@@ -434,66 +323,15 @@ export default function BookManagement() {
                 <CardTitle>Return Books</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="member-select-return">Select Member</Label>
-                  <Popover open={openMemberPopover} onOpenChange={setOpenMemberPopover}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openMemberPopover}
-                        className="w-full justify-between"
-                      >
-                        {selectedMemberId
-                          ? getMemberName(selectedMemberId)
-                          : "Search for a member..."}
-                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start">
-                      <Command>
-                        <CommandInput
-                          placeholder="Search members..."
-                          value={memberSearchTerm}
-                          onValueChange={setMemberSearchTerm}
-                        />
-                        {membersLoading ? (
-                          <div className="flex items-center justify-center p-4">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          </div>
-                        ) : (
-                          <>
-                            <CommandEmpty>No members found.</CommandEmpty>
-                            <CommandGroup>
-                              {filteredMembers.map((member) => (
-                                <CommandItem
-                                  key={member.id || member._id}
-                                  value={member.name}
-                                  onSelect={() => {
-                                    setSelectedMemberId(member.id || member._id || "");
-                                    setMemberSearchTerm("");
-                                    setOpenMemberPopover(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      (member.id === selectedMemberId || 
-                                       member._id === selectedMemberId)
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  {member.name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </>
-                        )}
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                <BookManagementSearch 
+                  items={membersForSearch}
+                  selectedId={selectedMemberId}
+                  onSelect={setSelectedMemberId}
+                  placeholder="Search for a member..."
+                  label="Select Member"
+                  isLoading={membersLoading}
+                  emptyMessage="No members found."
+                />
                 
                 {selectedMemberId && (
                   <div className="space-y-2 mt-4">
