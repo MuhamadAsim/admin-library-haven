@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, Loader2, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -39,11 +39,14 @@ export function BookManagementSearch({
 }: BookManagementSearchProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [commandKey, setCommandKey] = useState(Date.now().toString());
 
-  // Make sure items is always an array
-  const safeItems = Array.isArray(items) ? items : [];
+  // Make sure items is always an array and contains valid data
+  const safeItems = Array.isArray(items) ? items.filter(item => item && typeof item === 'object') : [];
   
-  const selectedItem = safeItems.find(item => item.id === selectedId || item._id === selectedId);
+  const selectedItem = safeItems.find(item => 
+    (item.id && item.id === selectedId) || (item._id && item._id === selectedId)
+  );
   
   const handleSelect = (value: string) => {
     onSelect(value);
@@ -51,12 +54,30 @@ export function BookManagementSearch({
     setOpen(false);
   };
 
-  // Make sure we're filtering a valid array
-  const filteredItems = searchTerm.trim() === '' 
-    ? safeItems 
-    : safeItems.filter(item => 
-        item.label && item.label.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  useEffect(() => {
+    // Reset command component when items change significantly
+    // This helps prevent the "undefined is not iterable" error
+    if (items && Array.isArray(items)) {
+      setCommandKey(Date.now().toString());
+    }
+  }, [items]);
+
+  // Make sure we're filtering a valid array with valid objects
+  const filteredItems = React.useMemo(() => {
+    if (searchTerm.trim() === '') {
+      return safeItems;
+    }
+    
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    return safeItems.filter(item => {
+      if (!item) return false;
+      
+      const matchLabel = item.label && item.label.toLowerCase().includes(lowerSearchTerm);
+      const matchDescription = item.description && item.description.toLowerCase().includes(lowerSearchTerm);
+      
+      return matchLabel || matchDescription;
+    });
+  }, [searchTerm, safeItems]);
 
   return (
     <div className="space-y-2">
@@ -78,7 +99,7 @@ export function BookManagementSearch({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0" align="start">
-          <Command shouldFilter={false}>
+          <Command key={commandKey} shouldFilter={false}>
             <CommandInput 
               placeholder={`Search ${label.toLowerCase()}...`}
               value={searchTerm}
