@@ -40,7 +40,10 @@ export function BookManagementSearch({
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const selectedItem = items.find(item => item.id === selectedId || item._id === selectedId);
+  // Make sure items is always an array
+  const safeItems = Array.isArray(items) ? items : [];
+  
+  const selectedItem = safeItems.find(item => item.id === selectedId || item._id === selectedId);
   
   const handleSelect = (value: string) => {
     onSelect(value);
@@ -48,9 +51,12 @@ export function BookManagementSearch({
     setOpen(false);
   };
 
+  // Make sure we're filtering a valid array
   const filteredItems = searchTerm.trim() === '' 
-    ? items 
-    : items.filter(item => item.label.toLowerCase().includes(searchTerm.toLowerCase()));
+    ? safeItems 
+    : safeItems.filter(item => 
+        item.label && item.label.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
   return (
     <div className="space-y-2">
