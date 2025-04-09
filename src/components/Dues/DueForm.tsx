@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Due, Book, Member, MemberReference, BookReference } from "@/types";
 import { getMembers } from "@/services/memberService";
 import { getBooks } from "@/services/bookService";
 import { extractMemberId, extractBookId } from "@/utils/referenceHelpers";
+import { BookManagementSearch } from "../Books/BookManagementSearch";
 
 interface DueFormProps {
   isOpen: boolean;
@@ -35,10 +37,12 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
   
   const [availableMembers, setAvailableMembers] = useState<Member[]>([]);
   const [availableBooks, setAvailableBooks] = useState<Book[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoading(true);
         const members = await getMembers();
         setAvailableMembers(members.filter(member => member.status === 'active'));
         
@@ -51,6 +55,8 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
       } catch (error) {
         console.error("Error fetching data:", error);
         toast.error("Failed to load required data. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
     };
     
@@ -84,6 +90,14 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
       const fine = calculateFine(formData.dueDate, returnDate);
       handleChange('fineAmount', fine);
     }
+  };
+
+  const handleSelectMember = (id: string) => {
+    handleChange('memberId', id);
+  };
+
+  const handleSelectBook = (id: string) => {
+    handleChange('bookId', id);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -124,43 +138,37 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="memberId">Member</Label>
-              <Select 
-                value={extractMemberId(formData.memberId)} 
-                onValueChange={(value) => handleChange('memberId', value)}
+              <BookManagementSearch
+                items={availableMembers.map(member => ({
+                  id: member.id || member._id || "",
+                  label: member.name,
+                  description: member.email
+                }))}
+                selectedId={extractMemberId(formData.memberId)}
+                onSelect={handleSelectMember}
+                placeholder="Select member"
+                label="Member"
+                isLoading={isLoading}
                 disabled={mode === 'edit'}
-              >
-                <SelectTrigger id="memberId" className="subtle-input">
-                  <SelectValue placeholder="Select member" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableMembers.map(member => (
-                    <SelectItem key={member.id} value={member.id}>
-                      {member.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                emptyMessage="No members found"
+              />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="bookId">Book</Label>
-              <Select 
-                value={extractBookId(formData.bookId)} 
-                onValueChange={(value) => handleChange('bookId', value)}
+              <BookManagementSearch
+                items={availableBooks.map(book => ({
+                  id: book.id || book._id || "",
+                  label: book.title,
+                  description: book.author
+                }))}
+                selectedId={extractBookId(formData.bookId)}
+                onSelect={handleSelectBook}
+                placeholder="Select book"
+                label="Book"
+                isLoading={isLoading}
                 disabled={mode === 'edit'}
-              >
-                <SelectTrigger id="bookId" className="subtle-input">
-                  <SelectValue placeholder="Select book" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableBooks.map(book => (
-                    <SelectItem key={book.id} value={book.id}>
-                      {book.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                emptyMessage="No books available"
+              />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
