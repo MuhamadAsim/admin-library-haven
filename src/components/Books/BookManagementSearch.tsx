@@ -45,10 +45,14 @@ export function BookManagementSearch({
   // Validate incoming items whenever they change
   useEffect(() => {
     try {
+      // Log incoming items for debugging
+      console.log('BookManagementSearch incoming items:', items);
+      
       // Ensure items is an array
       if (!items || !Array.isArray(items)) {
         console.warn('BookManagementSearch: items is not an array', items);
         setValidItems([]);
+        setCommandKey(Date.now().toString());
         return;
       }
 
@@ -60,6 +64,8 @@ export function BookManagementSearch({
         item.label
       );
       
+      console.log('BookManagementSearch filtered items:', safeItems);
+      
       // Set valid items for use in component
       setValidItems(safeItems);
       
@@ -68,6 +74,7 @@ export function BookManagementSearch({
     } catch (error) {
       console.error("Error processing search items:", error);
       setValidItems([]);
+      setCommandKey(Date.now().toString());
     }
   }, [items]);
 
@@ -102,6 +109,10 @@ export function BookManagementSearch({
     });
   }, [searchTerm, validItems]);
 
+  console.log('BookManagementSearch filteredItems:', filteredItems);
+  console.log('BookManagementSearch selectedId:', selectedId);
+  console.log('BookManagementSearch selectedItem:', selectedItem);
+
   return (
     <div className="space-y-2">
       <Label htmlFor={`search-${label}`}>{label}</Label>
@@ -133,39 +144,42 @@ export function BookManagementSearch({
                 <Loader2 className="h-4 w-4 animate-spin" />
               </div>
             ) : (
-              <>
+              <div>
                 {!filteredItems || filteredItems.length === 0 ? (
                   <div className="py-6 text-center text-sm text-muted-foreground">
                     {emptyMessage}
                   </div>
                 ) : (
                   <CommandGroup>
-                    {filteredItems.map((item) => (
-                      <CommandItem
-                        key={item.id || item._id}
-                        value={item.id || item._id || ""}
-                        onSelect={() => handleSelect(item.id || item._id || "")}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            (item.id === selectedId || item._id === selectedId)
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        <div>
-                          <div>{item.label}</div>
-                          {item.description && (
-                            <div className="text-xs text-muted-foreground">{item.description}</div>
-                          )}
-                        </div>
-                      </CommandItem>
-                    ))}
+                    {filteredItems.map((item) => {
+                      const itemId = item.id || item._id || "";
+                      const isSelected = selectedId === itemId;
+                      
+                      return (
+                        <CommandItem
+                          key={itemId}
+                          value={itemId}
+                          onSelect={() => handleSelect(itemId)}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              isSelected ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <div>
+                            <div>{item.label}</div>
+                            {item.description && (
+                              <div className="text-xs text-muted-foreground">{item.description}</div>
+                            )}
+                          </div>
+                        </CommandItem>
+                      );
+                    })}
                   </CommandGroup>
                 )}
                 <CommandEmpty>{emptyMessage}</CommandEmpty>
-              </>
+              </div>
             )}
           </Command>
         </PopoverContent>
