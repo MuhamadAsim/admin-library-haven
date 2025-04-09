@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,13 +44,21 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
       try {
         setIsLoading(true);
         const members = await getMembers();
-        setAvailableMembers(members.filter(member => member.status === 'active'));
+        // Ensure members have valid properties before filtering
+        const validMembers = Array.isArray(members) ? 
+          members.filter(member => member && typeof member === 'object') : [];
+          
+        setAvailableMembers(validMembers.filter(member => member.status === 'active'));
         
         const books = await getBooks();
+        // Ensure books have valid properties before filtering
+        const validBooks = Array.isArray(books) ? 
+          books.filter(book => book && typeof book === 'object') : [];
+          
         if (mode === 'create') {
-          setAvailableBooks(books.filter(book => book.status === 'available'));
+          setAvailableBooks(validBooks.filter(book => book.status === 'available'));
         } else {
-          setAvailableBooks(books);
+          setAvailableBooks(validBooks);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -125,6 +133,25 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
     
     onSave(formData);
   };
+  
+  // Ensure we have valid member and book data for the search components
+  const memberItems = Array.isArray(availableMembers) ? 
+    availableMembers
+      .filter(member => member && typeof member === 'object' && (member.id || member._id))
+      .map(member => ({
+        id: member.id || member._id || "",
+        label: member.name || "Unknown member",
+        description: member.email || ""
+      })) : [];
+
+  const bookItems = Array.isArray(availableBooks) ? 
+    availableBooks
+      .filter(book => book && typeof book === 'object' && (book.id || book._id))
+      .map(book => ({
+        id: book.id || book._id || "",
+        label: book.title || "Unknown book",
+        description: book.author || ""
+      })) : [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -133,17 +160,18 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
           <DialogTitle className="text-xl font-semibold">
             {mode === 'create' ? 'Issue New Book' : 'Update Record'}
           </DialogTitle>
+          <DialogDescription>
+            {mode === 'create' 
+              ? 'Select a member and book to issue' 
+              : 'Update the borrowing record details'}
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
               <BookManagementSearch
-                items={availableMembers.map(member => ({
-                  id: member.id || member._id || "",
-                  label: member.name,
-                  description: member.email
-                }))}
+                items={memberItems}
                 selectedId={extractMemberId(formData.memberId)}
                 onSelect={handleSelectMember}
                 placeholder="Select member"
@@ -156,11 +184,7 @@ export function DueForm({ isOpen, onClose, onSave, initialData, mode }: DueFormP
             
             <div className="space-y-2">
               <BookManagementSearch
-                items={availableBooks.map(book => ({
-                  id: book.id || book._id || "",
-                  label: book.title,
-                  description: book.author
-                }))}
+                items={bookItems}
                 selectedId={extractBookId(formData.bookId)}
                 onSelect={handleSelectBook}
                 placeholder="Select book"
