@@ -40,11 +40,28 @@ export function BookManagementSearch({
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [commandKey, setCommandKey] = useState(Date.now().toString());
+  const [validItems, setValidItems] = useState<SearchItemProps[]>([]);
 
-  // Make sure items is always an array and contains valid data
-  const safeItems = Array.isArray(items) ? items.filter(item => item && typeof item === 'object') : [];
-  
-  const selectedItem = safeItems.find(item => 
+  // Validate incoming items whenever they change
+  useEffect(() => {
+    try {
+      // Ensure items is an array and all items have necessary properties
+      const safeItems = Array.isArray(items) 
+        ? items.filter(item => item && typeof item === 'object' && (item.id || item._id) && item.label)
+        : [];
+      
+      // Set valid items for use in component
+      setValidItems(safeItems);
+      
+      // Reset command component to prevent stale data issues
+      setCommandKey(Date.now().toString());
+    } catch (error) {
+      console.error("Error processing search items:", error);
+      setValidItems([]);
+    }
+  }, [items]);
+
+  const selectedItem = validItems.find(item => 
     (item.id && item.id === selectedId) || (item._id && item._id === selectedId)
   );
   
@@ -54,22 +71,14 @@ export function BookManagementSearch({
     setOpen(false);
   };
 
-  useEffect(() => {
-    // Reset command component when items change significantly
-    // This helps prevent the "undefined is not iterable" error
-    if (items && Array.isArray(items)) {
-      setCommandKey(Date.now().toString());
-    }
-  }, [items]);
-
-  // Make sure we're filtering a valid array with valid objects
+  // Filter items based on search term
   const filteredItems = React.useMemo(() => {
     if (searchTerm.trim() === '') {
-      return safeItems;
+      return validItems;
     }
     
     const lowerSearchTerm = searchTerm.toLowerCase();
-    return safeItems.filter(item => {
+    return validItems.filter(item => {
       if (!item) return false;
       
       const matchLabel = item.label && item.label.toLowerCase().includes(lowerSearchTerm);
@@ -77,7 +86,7 @@ export function BookManagementSearch({
       
       return matchLabel || matchDescription;
     });
-  }, [searchTerm, safeItems]);
+  }, [searchTerm, validItems]);
 
   return (
     <div className="space-y-2">
@@ -113,28 +122,34 @@ export function BookManagementSearch({
               <>
                 <CommandEmpty>{emptyMessage}</CommandEmpty>
                 <CommandGroup>
-                  {filteredItems.map((item) => (
-                    <CommandItem
-                      key={item.id || item._id}
-                      value={item.label}
-                      onSelect={() => handleSelect(item.id || item._id || "")}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          (item.id === selectedId || item._id === selectedId)
-                            ? "opacity-100"
-                            : "opacity-0"
-                        )}
-                      />
-                      <div>
-                        <div>{item.label}</div>
-                        {item.description && (
-                          <div className="text-xs text-muted-foreground">{item.description}</div>
-                        )}
-                      </div>
-                    </CommandItem>
-                  ))}
+                  {filteredItems.length > 0 ? (
+                    filteredItems.map((item) => (
+                      <CommandItem
+                        key={item.id || item._id}
+                        value={item.id || item._id || ""}
+                        onSelect={() => handleSelect(item.id || item._id || "")}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            (item.id === selectedId || item._id === selectedId)
+                              ? "opacity-100"
+                              : "opacity-0"
+                          )}
+                        />
+                        <div>
+                          <div>{item.label}</div>
+                          {item.description && (
+                            <div className="text-xs text-muted-foreground">{item.description}</div>
+                          )}
+                        </div>
+                      </CommandItem>
+                    ))
+                  ) : (
+                    <div className="py-6 text-center text-sm text-muted-foreground">
+                      {emptyMessage}
+                    </div>
+                  )}
                 </CommandGroup>
               </>
             )}

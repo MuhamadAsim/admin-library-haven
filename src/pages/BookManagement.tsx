@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,8 +36,19 @@ export default function BookManagement() {
         const fetchedBooks = await bookService.getBooks();
         const fetchedMembers = await memberService.getMembers();
         
-        setBooks(fetchedBooks);
-        setMembers(fetchedMembers);
+        if (Array.isArray(fetchedBooks)) {
+          setBooks(fetchedBooks);
+        } else {
+          console.error("Books data is not an array:", fetchedBooks);
+          setBooks([]);
+        }
+        
+        if (Array.isArray(fetchedMembers)) {
+          setMembers(fetchedMembers);
+        } else {
+          console.error("Members data is not an array:", fetchedMembers);
+          setMembers([]);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
         toast({
@@ -46,6 +56,8 @@ export default function BookManagement() {
           title: "Error",
           description: "Failed to fetch data. Please try again later.",
         });
+        setBooks([]);
+        setMembers([]);
       } finally {
         setBooksLoading(false);
         setMembersLoading(false);
@@ -247,18 +259,18 @@ export default function BookManagement() {
 
   const availableBooks = books.filter(book => book.availableCopies > 0);
 
-  const membersForSearch = members.map(member => ({
+  const membersForSearch = members.filter(member => member && typeof member === 'object').map(member => ({
     id: member.id || member._id || "",
     _id: member._id,
-    label: member.name,
-    description: member.email
+    label: member.name || "Unnamed Member",
+    description: member.email || "No email provided"
   }));
 
-  const booksForSearch = availableBooks.map(book => ({
+  const booksForSearch = availableBooks.filter(book => book && typeof book === 'object').map(book => ({
     id: book.id || book._id || "",
     _id: book._id,
-    label: book.title,
-    description: `by ${book.author} (Copies: ${book.availableCopies})`
+    label: book.title || "Untitled Book",
+    description: book.author ? `by ${book.author} (Copies: ${book.availableCopies})` : `Copies: ${book.availableCopies}`
   }));
 
   return (
