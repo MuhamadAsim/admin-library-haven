@@ -45,10 +45,20 @@ export function BookManagementSearch({
   // Validate incoming items whenever they change
   useEffect(() => {
     try {
-      // Ensure items is an array and all items have necessary properties
-      const safeItems = Array.isArray(items) 
-        ? items.filter(item => item && typeof item === 'object' && (item.id || item._id) && item.label)
-        : [];
+      // Ensure items is an array
+      if (!items || !Array.isArray(items)) {
+        console.warn('BookManagementSearch: items is not an array', items);
+        setValidItems([]);
+        return;
+      }
+
+      // Filter out invalid items
+      const safeItems = items.filter(item => 
+        item && 
+        typeof item === 'object' && 
+        ((item.id !== undefined && item.id !== null) || (item._id !== undefined && item._id !== null)) && 
+        item.label
+      );
       
       // Set valid items for use in component
       setValidItems(safeItems);
@@ -73,7 +83,11 @@ export function BookManagementSearch({
 
   // Filter items based on search term
   const filteredItems = React.useMemo(() => {
-    if (searchTerm.trim() === '') {
+    if (!validItems || validItems.length === 0) {
+      return [];
+    }
+    
+    if (!searchTerm || searchTerm.trim() === '') {
       return validItems;
     }
     
@@ -120,10 +134,13 @@ export function BookManagementSearch({
               </div>
             ) : (
               <>
-                <CommandEmpty>{emptyMessage}</CommandEmpty>
-                <CommandGroup>
-                  {filteredItems.length > 0 ? (
-                    filteredItems.map((item) => (
+                {!filteredItems || filteredItems.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    {emptyMessage}
+                  </div>
+                ) : (
+                  <CommandGroup>
+                    {filteredItems.map((item) => (
                       <CommandItem
                         key={item.id || item._id}
                         value={item.id || item._id || ""}
@@ -144,13 +161,10 @@ export function BookManagementSearch({
                           )}
                         </div>
                       </CommandItem>
-                    ))
-                  ) : (
-                    <div className="py-6 text-center text-sm text-muted-foreground">
-                      {emptyMessage}
-                    </div>
-                  )}
-                </CommandGroup>
+                    ))}
+                  </CommandGroup>
+                )}
+                <CommandEmpty>{emptyMessage}</CommandEmpty>
               </>
             )}
           </Command>
