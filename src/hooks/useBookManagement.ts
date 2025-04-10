@@ -1,16 +1,21 @@
 
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Book, Member } from "@/lib/data";
+import { Book, Member, Due } from "@/lib/data";
 import * as bookService from "@/services/bookService";
 import * as memberService from "@/services/memberService";
+import * as dueService from "@/services/dueService";
+import { authService } from "@/services/authService";
 
 export function useBookManagement() {
   const [books, setBooks] = useState<Book[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [userBorrowedBooks, setUserBorrowedBooks] = useState<Due[]>([]);
   const [booksLoading, setBooksLoading] = useState(true);
   const [membersLoading, setMembersLoading] = useState(true);
+  const [borrowedBooksLoading, setBorrowedBooksLoading] = useState(true);
   const { toast } = useToast();
+  const currentUser = authService.getCurrentUser();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,6 +39,25 @@ export function useBookManagement() {
           console.error("Members data is not an array:", fetchedMembers);
           setMembers([]);
         }
+
+        // Fetch user's borrowed books if logged in
+        if (currentUser && currentUser.id) {
+          try {
+            setBorrowedBooksLoading(true);
+            const userDues = await dueService.getDuesByMemberId(currentUser.id);
+            if (Array.isArray(userDues)) {
+              setUserBorrowedBooks(userDues);
+            } else {
+              console.error("User borrowed books data is not an array:", userDues);
+              setUserBorrowedBooks([]);
+            }
+          } catch (error) {
+            console.error("Error fetching user borrowed books:", error);
+            setUserBorrowedBooks([]);
+          } finally {
+            setBorrowedBooksLoading(false);
+          }
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
         toast({
@@ -43,6 +67,7 @@ export function useBookManagement() {
         });
         setBooks([]);
         setMembers([]);
+        setUserBorrowedBooks([]);
       } finally {
         setBooksLoading(false);
         setMembersLoading(false);
@@ -50,13 +75,16 @@ export function useBookManagement() {
     };
     
     fetchData();
-  }, [toast]);
+  }, [toast, currentUser]);
 
   return {
     books,
     setBooks,
     members,
+    userBorrowedBooks,
+    setUserBorrowedBooks,
     booksLoading,
-    membersLoading
+    membersLoading,
+    borrowedBooksLoading
   };
 }

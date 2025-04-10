@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { format, isPast } from "date-fns";
-import { Book, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import { Book, Clock, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,52 +9,85 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MemberLayout from "@/components/Layout/MemberLayout";
 import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/authService";
-import { getDuesByMemberId } from "@/services/dueService";
+import { getDuesByMemberId, updateDue } from "@/services/dueService";
 import { Due } from "@/lib/data";
+import { ActiveBorrowingItem } from "@/components/Books/ActiveBorrowingItem";
 
 export default function MemberBorrowedBooks() {
   const [borrowedBooks, setBorrowedBooks] = useState<Due[]>([]);
   const [returnedBooks, setReturnedBooks] = useState<Due[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [returnLoading, setReturnLoading] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchBorrowedBooks = async () => {
-      try {
-        setIsLoading(true);
-        const user = authService.getCurrentUser();
-        
-        if (!user) {
-          toast({
-            title: "Error",
-            description: "You need to be logged in to view your borrowed books.",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        const dues = await getDuesByMemberId(user.id);
-        
-        // Separate current borrowings and returned books
-        const current = dues.filter(due => !due.returnDate);
-        const returned = dues.filter(due => due.returnDate);
-        
-        setBorrowedBooks(current);
-        setReturnedBooks(returned);
-      } catch (error) {
-        console.error("Error fetching borrowed books:", error);
+  const fetchBorrowedBooks = async () => {
+    try {
+      setIsLoading(true);
+      const user = authService.getCurrentUser();
+      
+      if (!user) {
         toast({
           title: "Error",
-          description: "Failed to load your borrowed books. Please try again later.",
+          description: "You need to be logged in to view your borrowed books.",
           variant: "destructive"
         });
-      } finally {
-        setIsLoading(false);
+        return;
       }
-    };
-    
+      
+      console.log("Fetching borrowed books for user:", user.id);
+      const dues = await getDuesByMemberId(user.id);
+      console.log("Retrieved dues:", dues);
+      
+      // Separate current borrowings and returned books
+      const current = dues.filter(due => !due.returnDate);
+      const returned = dues.filter(due => due.returnDate);
+      
+      setBorrowedBooks(current);
+      setReturnedBooks(returned);
+    } catch (error) {
+      console.error("Error fetching borrowed books:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load your borrowed books. Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchBorrowedBooks();
   }, [toast]);
+
+  const handleReturnBook = async (dueId: string, bookId: string, fine: number) => {
+    try {
+      setReturnLoading(true);
+      
+      await updateDue(dueId, {
+        returnDate: new Date().toISOString(),
+        fineAmount: fine,
+        status: fine > 0 ? 'pending' : 'paid'
+      });
+      
+      toast({
+        title: "Success",
+        description: "Book returned successfully."
+      });
+      
+      // Refresh the list
+      fetchBorrowedBooks();
+    } catch (error) {
+      console.error("Error returning book:", error);
+      toast({
+        title: "Error",
+        description: "Failed to return book. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setReturnLoading(false);
+    }
+  };
 
   const getBookTitle = (bookId: any): string => {
     if (typeof bookId === 'object' && bookId) {
@@ -121,54 +154,13 @@ export default function MemberBorrowedBooks() {
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {borrowedBooks.map((due) => (
-                      <Card key={due.id} className="overflow-hidden">
-                        <div className="h-40 bg-primary/5 flex items-center justify-center">
-                          {getBookCover(due.bookId) ? (
-                            <img
-                              src={getBookCover(due.bookId)}
-                              alt={getBookTitle(due.bookId)}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <Book className="h-16 w-16 text-primary/60" />
-                          )}
-                        </div>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="line-clamp-1">{getBookTitle(due.bookId)}</CardTitle>
-                          <p className="text-sm text-muted-foreground">by {getBookAuthor(due.bookId)}</p>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center text-sm">
-                                <Clock className="mr-1 h-4 w-4" />
-                                <span>Borrowed:</span>
-                              </div>
-                              <span className="text-sm font-medium">{formatDate(due.issueDate)}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center text-sm">
-                                <Clock className="mr-1 h-4 w-4" />
-                                <span>Due by:</span>
-                              </div>
-                              <span className="text-sm font-medium">{formatDate(due.dueDate)}</span>
-                            </div>
-                            
-                            {isOverdue(due.dueDate) ? (
-                              <div className="mt-4 flex items-center text-destructive">
-                                <AlertTriangle className="mr-1 h-4 w-4" />
-                                <span className="text-sm font-bold">
-                                  Overdue - Fine: ${due.fineAmount.toFixed(2)}
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="mt-4 text-sm text-muted-foreground">
-                                Please return this book to the library by the due date to avoid fines.
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <ActiveBorrowingItem
+                        key={due.id || due._id}
+                        due={due}
+                        bookTitle={getBookTitle(due.bookId)}
+                        returnLoading={returnLoading}
+                        onReturnBook={handleReturnBook}
+                      />
                     ))}
                   </div>
                 )}
@@ -186,7 +178,7 @@ export default function MemberBorrowedBooks() {
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {returnedBooks.map((due) => (
-                      <Card key={due.id} className="overflow-hidden">
+                      <Card key={due.id || due._id} className="overflow-hidden">
                         <CardHeader className="pb-2">
                           <CardTitle className="line-clamp-1">{getBookTitle(due.bookId)}</CardTitle>
                           <p className="text-sm text-muted-foreground">by {getBookAuthor(due.bookId)}</p>

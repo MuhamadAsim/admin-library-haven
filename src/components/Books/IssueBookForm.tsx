@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Book, Member, Due } from "@/lib/data";
+import { Book, Member } from "@/lib/data";
 import * as bookService from "@/services/bookService";
 import * as dueService from "@/services/dueService";
 import * as activityLogService from "@/services/activityLogService";
@@ -31,19 +31,23 @@ export function IssueBookForm({
 
   const availableBooks = books.filter(book => book.availableCopies > 0);
 
-  const membersForSearch = members.filter(member => member && typeof member === 'object').map(member => ({
-    id: member.id || member._id || "",
-    _id: member._id,
-    label: member.name || "Unnamed Member",
-    description: member.email || "No email provided"
-  }));
+  const membersForSearch = members
+    .filter(member => member && typeof member === 'object')
+    .map(member => ({
+      id: member.id || member._id || "",
+      _id: member._id,
+      label: member.name || "Unnamed Member",
+      description: member.email || "No email provided"
+    }));
 
-  const booksForSearch = availableBooks.filter(book => book && typeof book === 'object').map(book => ({
-    id: book.id || book._id || "",
-    _id: book._id,
-    label: book.title || "Untitled Book",
-    description: book.author ? `by ${book.author} (Copies: ${book.availableCopies})` : `Copies: ${book.availableCopies}`
-  }));
+  const booksForSearch = availableBooks
+    .filter(book => book && typeof book === 'object')
+    .map(book => ({
+      id: book.id || book._id || "",
+      _id: book._id,
+      label: book.title || "Untitled Book",
+      description: book.author ? `by ${book.author} (Copies: ${book.availableCopies})` : `Copies: ${book.availableCopies}`
+    }));
 
   const handleIssueBook = async () => {
     if (!selectedMemberId || !selectedBookId) {
@@ -59,6 +63,8 @@ export function IssueBookForm({
       setIssuanceLoading(true);
       
       const book = books.find(b => b.id === selectedBookId || b._id === selectedBookId);
+      const member = members.find(m => m.id === selectedMemberId || m._id === selectedMemberId);
+      
       if (!book || (book.availableCopies <= 0)) {
         toast({
           variant: "destructive",
@@ -68,8 +74,24 @@ export function IssueBookForm({
         return;
       }
       
+      if (!member) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Selected member not found.",
+        });
+        return;
+      }
+      
+      console.log("Issuing book to member:", {
+        memberId: selectedMemberId,
+        memberName: member.name,
+        bookId: selectedBookId,
+        bookTitle: book.title
+      });
+      
       const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 14);
+      dueDate.setDate(dueDate.getDate() + 14); // 2 weeks from now
       
       const dueRecord = await dueService.addDue({
         memberId: selectedMemberId,
@@ -81,6 +103,9 @@ export function IssueBookForm({
         status: 'pending'
       });
       
+      console.log("Due record created:", dueRecord);
+      
+      // Log the activity
       await activityLogService.addActivityLog({
         userId: selectedMemberId,
         action: 'borrow',
@@ -91,6 +116,7 @@ export function IssueBookForm({
         }
       });
       
+      // Update book availability
       const updatedBook = await bookService.updateBook(selectedBookId, {
         availableCopies: (book.availableCopies - 1),
         status: book.availableCopies <= 1 ? 'borrowed' : 'available'
@@ -102,6 +128,7 @@ export function IssueBookForm({
       
       onBookIssued(updatedBooks);
       setSelectedBookId("");
+      setSelectedMemberId("");
       
       toast({
         title: "Success",
