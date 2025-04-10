@@ -39,46 +39,30 @@ export function BookManagementSearch({
 }: BookManagementSearchProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [commandKey, setCommandKey] = useState(Date.now().toString());
-  const [validItems, setValidItems] = useState<SearchItemProps[]>([]);
-
-  // Validate incoming items whenever they change
-  useEffect(() => {
-    try {
-      // Log incoming items for debugging
-      console.log('BookManagementSearch incoming items:', items);
-      
-      // Ensure items is an array
-      if (!items || !Array.isArray(items)) {
-        console.warn('BookManagementSearch: items is not an array', items);
-        setValidItems([]);
-        setCommandKey(Date.now().toString());
-        return;
-      }
-
-      // Filter out invalid items
-      const safeItems = items.filter(item => 
-        item && 
-        typeof item === 'object' && 
-        ((item.id !== undefined && item.id !== null) || (item._id !== undefined && item._id !== null)) && 
-        item.label
-      );
-      
-      console.log('BookManagementSearch filtered items:', safeItems);
-      
-      // Set valid items for use in component
-      setValidItems(safeItems);
-      
-      // Reset command component to prevent stale data issues
-      setCommandKey(Date.now().toString());
-    } catch (error) {
-      console.error("Error processing search items:", error);
-      setValidItems([]);
-      setCommandKey(Date.now().toString());
+  const [key, setKey] = useState(Date.now().toString());
+  
+  // Safety check to ensure items is an array and all items have valid IDs
+  const safeItems = React.useMemo(() => {
+    if (!Array.isArray(items)) {
+      console.warn('BookManagementSearch: items is not an array', items);
+      return [];
     }
+    
+    return items.filter(item => 
+      item && 
+      typeof item === 'object' && 
+      (item.id !== undefined || item._id !== undefined) && 
+      item.label
+    );
+  }, [items]);
+  
+  // Reset the key when items change to force a re-render of the Command component
+  useEffect(() => {
+    setKey(Date.now().toString());
   }, [items]);
 
-  const selectedItem = validItems.find(item => 
+  // Find the selected item
+  const selectedItem = safeItems.find(item => 
     (item.id && item.id === selectedId) || (item._id && item._id === selectedId)
   );
   
@@ -90,28 +74,18 @@ export function BookManagementSearch({
 
   // Filter items based on search term
   const filteredItems = React.useMemo(() => {
-    if (!validItems || validItems.length === 0) {
-      return [];
-    }
-    
     if (!searchTerm || searchTerm.trim() === '') {
-      return validItems;
+      return safeItems;
     }
     
     const lowerSearchTerm = searchTerm.toLowerCase();
-    return validItems.filter(item => {
-      if (!item) return false;
-      
+    return safeItems.filter(item => {
       const matchLabel = item.label && item.label.toLowerCase().includes(lowerSearchTerm);
       const matchDescription = item.description && item.description.toLowerCase().includes(lowerSearchTerm);
       
       return matchLabel || matchDescription;
     });
-  }, [searchTerm, validItems]);
-
-  console.log('BookManagementSearch filteredItems:', filteredItems);
-  console.log('BookManagementSearch selectedId:', selectedId);
-  console.log('BookManagementSearch selectedItem:', selectedItem);
+  }, [searchTerm, safeItems]);
 
   return (
     <div className="space-y-2">
@@ -133,33 +107,41 @@ export function BookManagementSearch({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-full p-0" align="start">
-          <Command key={commandKey} shouldFilter={false}>
-            <CommandInput 
-              placeholder={`Search ${label.toLowerCase()}...`}
-              value={searchTerm}
-              onValueChange={setSearchTerm}
-            />
+          <div key={key} className="w-full">
+            <div className="flex items-center border-b px-3">
+              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+              <input
+                className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder={`Search ${label.toLowerCase()}...`}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
             {isLoading ? (
               <div className="flex items-center justify-center p-4">
                 <Loader2 className="h-4 w-4 animate-spin" />
               </div>
             ) : (
-              <div>
-                {!filteredItems || filteredItems.length === 0 ? (
+              <div className="max-h-[300px] overflow-y-auto p-1">
+                {filteredItems.length === 0 ? (
                   <div className="py-6 text-center text-sm text-muted-foreground">
                     {emptyMessage}
                   </div>
                 ) : (
-                  <CommandGroup>
+                  <div>
                     {filteredItems.map((item) => {
                       const itemId = item.id || item._id || "";
                       const isSelected = selectedId === itemId;
                       
                       return (
-                        <CommandItem
+                        <div
                           key={itemId}
-                          value={itemId}
-                          onSelect={() => handleSelect(itemId)}
+                          className={cn(
+                            "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                            isSelected && "bg-accent text-accent-foreground"
+                          )}
+                          onClick={() => handleSelect(itemId)}
                         >
                           <Check
                             className={cn(
@@ -173,15 +155,14 @@ export function BookManagementSearch({
                               <div className="text-xs text-muted-foreground">{item.description}</div>
                             )}
                           </div>
-                        </CommandItem>
+                        </div>
                       );
                     })}
-                  </CommandGroup>
+                  </div>
                 )}
-                <CommandEmpty>{emptyMessage}</CommandEmpty>
               </div>
             )}
-          </Command>
+          </div>
         </PopoverContent>
       </Popover>
     </div>

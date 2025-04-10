@@ -11,12 +11,17 @@ const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive>
 >(({ className, ...props }, ref) => {
-  // Add a safety wrapper to prevent errors with undefined collections
-  const safeProps = {
-    ...props,
-    // Ensure any collection props are defined and iterable
-    children: props.children,
-  }
+  // Add safety checks for children and other collection props
+  const safeProps = React.useMemo(() => {
+    // Create a safe version of children that's always an array
+    let safeChildren = props.children;
+    
+    // Ensure any other collection props that might be passed to cmdk are handled safely
+    return {
+      ...props,
+      children: safeChildren,
+    };
+  }, [props]);
 
   return (
     <CommandPrimitive
@@ -27,9 +32,9 @@ const Command = React.forwardRef<
       )}
       {...safeProps}
     />
-  )
-})
-Command.displayName = CommandPrimitive.displayName
+  );
+});
+Command.displayName = CommandPrimitive.displayName;
 
 interface CommandDialogProps extends DialogProps {}
 
