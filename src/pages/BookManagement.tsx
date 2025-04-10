@@ -1,13 +1,14 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Users } from "lucide-react";
+import { memo } from "react";
 import MainLayout from "@/components/Layout/MainLayout";
 import { useBookManagement } from "@/hooks/useBookManagement";
 import { IssueBookForm } from "@/components/Books/IssueBookForm";
 import { ReturnBookForm } from "@/components/Books/ReturnBookForm";
 
-export default function BookManagement() {
+// Wrap the component in React.memo to prevent unnecessary re-renders
+const BookManagement = memo(function BookManagement() {
   const { books, setBooks, members, booksLoading, membersLoading } = useBookManagement();
 
   return (
@@ -57,4 +58,6 @@ export default function BookManagement() {
       </div>
     </MainLayout>
   );
-}
+});
+
+export default BookManagement;
